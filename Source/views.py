@@ -13,18 +13,27 @@ class ViewRenderer:
         self.config = config
         self.app = app_instance
 
+    TAB_LABELS = {
+        "GLOBAL": "Global",
+        "FAVRECENT": "Favorites/Recent",
+        "SETTINGS": "Settings",
+        "MODS": "Mods",
+        "UPDATES": "Updates",
+    }
+
     def get_tabs_text(self, current_tab, tabs):
         parts = []
         for tab in tabs:
             key = f"F{tabs.index(tab)+1}"
+            label = self.TAB_LABELS.get(tab, tab)
             if tab == current_tab:
-                parts.append(f"<ansiyellow><b> [{key}: {tab}] </b></ansiyellow>")
+                parts.append(f"<ansiyellow><b> [{key}: {label}] </b></ansiyellow>")
             else:
-                parts.append(f"  {key}: {tab}  ")
+                parts.append(f"  {key}: {label}  ")
         return HTML("".join(parts))
 
     def get_footer_text(self):
-        footer = f" <b>F1-F6</b>: Tabs | <b>F7</b>: Fav | <b>F8</b>: Refresh | <b>Ctrl+C</b>: Quit | <b>PageUp/PageDown</b>: Scroll Page | <b>Build:</b> {BUILD_INFO} "
+        footer = f" <b>F1-F5</b>: Tabs | <b>←/→</b>: Switch between windows | <b>F7</b>: Fav | <b>F8</b>: Refresh | <b>Ctrl+C</b>: Quit | <b>PageUp/PageDown</b>: Scroll Page | <b>Build:</b> {BUILD_INFO} "
         return HTML(footer)
 
     def get_settings_view(self, nick_input, dayz_path_input):
@@ -51,24 +60,7 @@ class ViewRenderer:
             title=" CONFIGURATION "
         )
 
-    def get_server_list_text(self, filtered_servers, selected_index, live_info, loading, current_tab, output_size, search_text=""):
-        if loading and current_tab == "GLOBAL":
-            return HTML("<ansigreen>Fetching servers data...</ansigreen>")
-        
-        if current_tab == "GLOBAL" and not search_text and not filtered_servers:
-            return HTML("<ansiyellow>Type server name...</ansiyellow>")
-        
-        if not filtered_servers and not loading:
-            if current_tab == "GLOBAL" and search_text:
-                return HTML(f"<ansired>No servers found matching: '{search_text}'</ansired>")
-            elif current_tab == "GLOBAL":
-                return HTML("<ansiyellow>Type server name...</ansiyellow>")
-            return "No servers found."
-
-        cols, rows = output_size
-        width = cols - 46 
-        if width < 40: width = 80
-
+    def _render_server_table(self, filtered_servers, selected_index, live_info, width, rows):
         table = Table(box=box.MINIMAL, expand=True, show_header=True, header_style="bold cyan")
         table.add_column("SEL", width=3, justify="center")
         table.add_column("SERVER NAME", no_wrap=True)
@@ -80,7 +72,7 @@ class ViewRenderer:
 
         height = rows - 10
         if height < 5: height = 20
-        
+
         start = max(0, selected_index - (height // 2))
         end = min(len(filtered_servers), start + height)
 
@@ -88,11 +80,11 @@ class ViewRenderer:
         fav_keys = set()
         for f in favs:
             fav_keys.add((str(f.get('ip')), str(f.get('port'))))
-        
+
         for i in range(start, end):
             s = filtered_servers[i]
             is_sel = (i == selected_index)
-            
+
             is_fav = (str(s.get('ip')), str(s.get('port'))) in fav_keys
 
             style = "bold white on blue" if is_sel else ""
@@ -100,9 +92,9 @@ class ViewRenderer:
                 style = "bold yellow"
             elif is_fav and is_sel:
                 style = "bold yellow on blue"
-            
+
             live = live_info.get((s.get('ip'), s.get('port')))
-            
+
             if live:
                 queue_val = live.get('queue', 0)
                 players = live.get('players', '?')
@@ -122,10 +114,10 @@ class ViewRenderer:
                 q_int = int(queue_val)
             except:
                 q_int = 0
-            
+
             q_display = str(q_int) if q_int > 0 else "0"
             p_str = f"{players}/{max_players}"
-            
+
             name_display = s.get('name', 'Unknown')
             if is_fav:
                 name_display = f"* {name_display}"
@@ -137,14 +129,14 @@ class ViewRenderer:
                     if p_val <= 75: ping_display = f"[green]{s_ping}[/green]"
                     elif p_val <= 150: ping_display = f"[yellow]{s_ping}[/yellow]"
                     else: ping_display = f"[red]{s_ping}[/red]"
-                    
+
                     if is_sel:
                          if p_val <= 75: ping_display = f"[bold green]{s_ping}[/bold green]"
                          elif p_val <= 150: ping_display = f"[bold yellow]{s_ping}[/bold yellow]"
-                         else: ping_display = f"[bold red]{s_ping}[/bold red]" 
+                         else: ping_display = f"[bold red]{s_ping}[/bold red]"
                 except:
                     pass
-            
+
             table.add_row(
                 ">" if is_sel else " ",
                 name_display[:(width-56)],
@@ -160,3 +152,30 @@ class ViewRenderer:
         console = Console(file=output, force_terminal=True, color_system="standard", width=width)
         console.print(table)
         return ANSI(output.getvalue())
+
+    def get_server_list_text(self, filtered_servers, selected_index, live_info, loading, current_tab, output_size, search_text=""):
+        if loading and current_tab == "GLOBAL":
+            return HTML("<ansigreen>Fetching servers data...</ansigreen>")
+
+        if current_tab == "GLOBAL" and not search_text and not filtered_servers:
+            return HTML("<ansiyellow>Type server name...</ansiyellow>")
+
+        if not filtered_servers and not loading:
+            if current_tab == "GLOBAL" and search_text:
+                return HTML(f"<ansired>No servers found matching: '{search_text}'</ansired>")
+            elif current_tab == "GLOBAL":
+                return HTML("<ansiyellow>Type server name...</ansiyellow>")
+            return "No servers found."
+
+        cols, rows = output_size
+        width = cols - 46
+        if width < 40: width = 80
+        return self._render_server_table(filtered_servers, selected_index, live_info, width, rows)
+
+    def get_pane_server_list_text(self, filtered_servers, selected_index, live_info, output_size):
+        if not filtered_servers:
+            return "No servers found."
+        cols, rows = output_size
+        width = cols
+        if width < 40: width = 80
+        return self._render_server_table(filtered_servers, selected_index, live_info, width, rows)

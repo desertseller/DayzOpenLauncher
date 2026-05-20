@@ -63,7 +63,19 @@ class UILayout:
             focusable=True
         )
         tui.content_window = Window(content=tui.content_control, cursorline=False)
-        
+
+        tui.recent_control = FormattedTextControl(
+            text=tui.get_recent_list_text,
+            focusable=True
+        )
+        tui.recent_window = Window(content=tui.recent_control, cursorline=False)
+
+        tui.favorites_control = FormattedTextControl(
+            text=tui.get_favorites_list_text,
+            focusable=True
+        )
+        tui.favorites_window = Window(content=tui.favorites_control, cursorline=False)
+
         tui.mod_control = FormattedTextControl(text=tui.get_mod_list_text)
 
     def init_layout(self):
@@ -74,16 +86,21 @@ class UILayout:
             Frame(Window(content=tui.mod_control), title="Server Details", width=40),
         ])
 
+        favrecent_content = VSplit([
+            Frame(tui.recent_window, title="Recent"),
+            Frame(tui.favorites_window, title="Favorites"),
+        ])
+
         mods_content = Frame(
             Window(content=tui.installed_mods_control),
             title="Mods"
         )
-        
+
         settings_content = self.view_renderer.get_settings_view(
-            tui.nick_input, 
+            tui.nick_input,
             tui.dayz_path_input
         )
-        
+
         tui.updates_control = FormattedTextControl(
             text=lambda: self._get_updates_text(),
             focusable=True
@@ -104,6 +121,8 @@ class UILayout:
                 return mods_content
             elif tui.current_tab == "UPDATES":
                 return updates_content
+            elif tui.current_tab == "FAVRECENT":
+                return favrecent_content
             return main_content
 
         tui.root_container = FloatContainer(
