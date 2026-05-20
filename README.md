@@ -13,12 +13,16 @@ A simple Python TUI launcher for Windows Terminal that allows you to browse DayZ
 
 ![DayzOpenLauncher Screenshot](assets/screen.png)
 
+## Requirements
+- Windows 11 / 10
+- Python 3.14
+
 ## How to use
 
 1. Go to the [Releases](https://github.com/PawelKawka/DayzOpenLauncher/releases) page.
 2. Download source code or clone this repo.
 3. Open terminal in the repo directory.
-4. Install dependencies:
+4. Install python dependencies:
    ```bash
    pip install -r requirements.txt
    ```
