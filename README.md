@@ -13,13 +13,19 @@ A simple Python TUI launcher for Windows Terminal that allows you to browse DayZ
 
 ![DayzOpenLauncher Screenshot](assets/screen.png)
 
-## Installation
+## How to use
 
-### Windows
 1. Go to the [Releases](https://github.com/PawelKawka/DayzOpenLauncher/releases) page.
-2. Download `DayzOpenLauncher_Setup.exe`.
-3. Run the installer and follow the instructions.
-4. Launch the app via the Desktop shortcut or Start Menu.
+2. Download source code or clone this repo.
+3. Open terminal in the repo directory.
+4. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+5. Run the launcher:
+   ```bash
+   python Source/main.py 
+   ```
 
 > [!WARNING]
 > #### Windows SmartScreen
@@ -29,8 +35,6 @@ A simple Python TUI launcher for Windows Terminal that allows you to browse DayZ
 
 - Uses **DZSA API** for global server listing.
 - Uses **python-a2s** for live server queries.
-
----
 
 ## About
 - Developed by Pawel Kawka.
