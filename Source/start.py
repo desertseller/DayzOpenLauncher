@@ -54,16 +54,16 @@ class DayZLauncherTUI:
         self.data_manager = DataManager()
         self.mod_manager = ModManager(self.data_manager.config)
         self.server_actions = ServerActions(self.data_manager.config)
-        self.view_renderer = ViewRenderer(self.data_manager.config)
-        
+        self.view_renderer = ViewRenderer(self.data_manager.config, self)
+
         current_path = self.data_manager.config.get("dayz_path")
-        
+
         # validate path
         path_invalid = False
         if current_path and current_path != "CANNOT FIND PATH":
             if platform.system() == "Windows" and current_path.startswith("/"):
                 path_invalid = True
-        
+
         if not current_path or path_invalid or current_path == "CANNOT FIND PATH":
             steam = get_steam_path()
             path = get_dayz_path(steam)
@@ -80,7 +80,7 @@ class DayZLauncherTUI:
         self.refresh_lock = threading.Lock()
         self.search_timer = None
         self.current_tab = "GLOBAL"
-        self.tabs = ["GLOBAL", "FAVRECENT", "SETTINGS", "MODS", "UPDATES"]
+        self.tabs = ["GLOBAL", "FAVRECENT", "SETTINGS", "MODS"]
         self.show_launch_dialog = False
         self.launch_message = ""
         self.latest_update_info = None

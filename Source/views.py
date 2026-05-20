@@ -33,7 +33,8 @@ class ViewRenderer:
         return HTML("".join(parts))
 
     def get_footer_text(self):
-        footer = f" <b>F1-F5</b>: Tabs | <b>←/→</b>: Switch between windows | <b>F7</b>: Fav | <b>F8</b>: Refresh | <b>Ctrl+C</b>: Quit | <b>PageUp/PageDown</b>: Scroll Page | <b>Build:</b> {BUILD_INFO} "
+        tabs_count = len(self.app.tabs) if self.app else 4
+        footer = f" <b>F1-F{tabs_count}</b>: Tabs | <b>←/→</b>: Switch between windows | <b>F7</b>: Fav | <b>F8</b>: Refresh | <b>Ctrl+C</b>: Quit | <b>PageUp/PageDown</b>: Scroll Page | <b>Build:</b> {BUILD_INFO} "
         return HTML(footer)
 
     def get_settings_view(self, nick_input, dayz_path_input):
@@ -57,7 +58,7 @@ class ViewRenderer:
                 ]),
                 Window(), 
             ], padding=0),
-            title=" CONFIGURATION "
+            title="Settings"
         )
 
     def _render_server_table(self, filtered_servers, selected_index, live_info, width, rows):

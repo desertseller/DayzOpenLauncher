@@ -40,10 +40,13 @@ class UpdateChecker:
                             "body": data.get("body", ""),
                             "url": data.get("html_url", "https://github.com/PawelKawka/DayzOpenLauncher/releases")
                         }
-                        
+
+                        if "UPDATES" not in self.tui.tabs:
+                            self.tui.tabs.append("UPDATES")
+
                         # switch to updates tab
                         self.tui.switch_tab("UPDATES")
-                        
+
                         if hasattr(self.tui, 'app'):
                             self.tui.app.invalidate()
             except Exception:

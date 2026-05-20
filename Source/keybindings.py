@@ -10,6 +10,8 @@ class KeyBinder:
         
         @kb.add('/')
         def _focus_search(event):
+            if self.tui.current_tab != "GLOBAL":
+                return
             event.app.layout.focus(self.tui.search_filter)
             self.tui.search_filter.buffer.cursor_position = len(self.tui.search_filter.text)
 
@@ -41,12 +43,19 @@ class KeyBinder:
                         target_control = self.tui.installed_mods_control
                     elif self.tui.current_tab == "FAVRECENT":
                         target_control = self.tui.recent_control if self.tui.favrecent_pane == "recent" else self.tui.favorites_control
+                    elif self.tui.current_tab == "UPDATES":
+                        target_control = self.tui.updates_control
 
-                    if event.app.layout.has_focus(self.tui.search_filter):
+                    if self.tui.current_tab == "GLOBAL" and event.app.layout.has_focus(self.tui.search_filter):
                         event.app.layout.focus(target_control)
+                    elif event.app.layout.has_focus(target_control):
+                        if self.tui.current_tab == "GLOBAL":
+                            event.app.layout.focus(self.tui.search_filter)
+                            self.tui.search_filter.buffer.cursor_position = len(self.tui.search_filter.text)
+                        else:
+                            event.app.layout.focus(target_control)
                     else:
-                        event.app.layout.focus(self.tui.search_filter)
-                        self.tui.search_filter.buffer.cursor_position = len(self.tui.search_filter.text)
+                        event.app.layout.focus(target_control)
             except (ValueError, AttributeError):
                 pass
 
@@ -64,6 +73,8 @@ class KeyBinder:
                 elif self.tui.current_tab == "FAVRECENT":
                     target = self.tui.recent_control if self.tui.favrecent_pane == "recent" else self.tui.favorites_control
                     event.app.layout.focus(target)
+                elif self.tui.current_tab == "UPDATES":
+                    event.app.layout.focus(self.tui.updates_control)
                 else:
                     event.app.layout.focus(self.tui.content_control)
             except:
@@ -83,7 +94,9 @@ class KeyBinder:
         @kb.add('f4')
         def _mods(event): self.tui.switch_tab("MODS")
         @kb.add('f5')
-        def _updates(event): self.tui.switch_tab("UPDATES")
+        def _updates(event):
+            if "UPDATES" in self.tui.tabs:
+                self.tui.switch_tab("UPDATES")
 
         @kb.add('enter', filter=Condition(lambda: self.tui.current_tab == "UPDATES" and not self.tui.show_launch_dialog))
         def _start_update(event):
@@ -132,6 +145,8 @@ class KeyBinder:
 
         @kb.add('<any>')
         def _handle_typing(event):
+            if self.tui.current_tab != "GLOBAL":
+                return NotImplemented
             if len(event.data) == 1 and event.data.isprintable():
                 self.tui.app.layout.focus(self.tui.search_filter)
                 self.tui.search_filter.buffer.insert_text(event.data)
@@ -141,6 +156,8 @@ class KeyBinder:
 
         @kb.add('backspace')
         def _backspace(event):
+            if self.tui.current_tab != "GLOBAL":
+                return
             if self.tui.search_filter.text:
                 self.tui.search_filter.buffer.delete_before_cursor()
                 self.tui.selected_index = 0
@@ -155,12 +172,10 @@ class KeyBinder:
                 idx = self.tui.active_pane_index
                 if idx > 0:
                     self.tui.set_active_pane_index(idx - 1)
-                else:
-                    event.app.layout.focus(self.tui.search_filter)
             else:
                 if self.tui.selected_index > 0:
                     self.tui.selected_index -= 1
-                elif self.tui.current_tab != "SETTINGS":
+                elif self.tui.current_tab == "GLOBAL":
                     event.app.layout.focus(self.tui.search_filter)
             event.app.invalidate()
 

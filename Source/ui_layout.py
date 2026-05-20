@@ -125,14 +125,21 @@ class UILayout:
                 return favrecent_content
             return main_content
 
+        search_frame = ConditionalContainer(
+            content=Frame(tui.search_filter, title=f"{APP_NAME}"),
+            filter=Condition(lambda: tui.current_tab == "GLOBAL")
+        )
+        title_frame = ConditionalContainer(
+            content=Frame(Window(height=1), title=f"{APP_NAME}"),
+            filter=Condition(lambda: tui.current_tab != "GLOBAL")
+        )
+
         tui.root_container = FloatContainer(
             content=HSplit([
-                Frame(
-                    tui.search_filter,
-                    title=f"{APP_NAME}"
-                ),
+                search_frame,
+                title_frame,
                 Window(content=FormattedTextControl(text=lambda: self.view_renderer.get_tabs_text(tui.current_tab, tui.tabs)), height=1),
-                DynamicContainer(get_body), 
+                DynamicContainer(get_body),
                 Window(content=FormattedTextControl(text=lambda: self.view_renderer.get_footer_text()), height=1),
             ]),
             floats=[
@@ -163,9 +170,8 @@ class UILayout:
                 ("ansiyellow bold", " --- GitHub Updates ---\n\n"),
                 ("", f" Current version: {VERSION}\n\n"),
                 ("ansigreen", " You are up to date!\n\n"),
-                ("", " Press F8 to manually check for updates.\n"),
             ]
-        
+
         info = self.tui.latest_update_info
         res = [
             ("ansiyellow bold", "--- New version available ---\n\n"),
