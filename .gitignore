@@ -2,7 +2,6 @@ TEMP/
 build/
 dist/
 __pycache__/
-*.txt
 *.sh text eol=lf
 *.log
 *.iss
