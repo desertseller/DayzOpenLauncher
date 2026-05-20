@@ -15,7 +15,7 @@ class ViewRenderer:
 
     TAB_LABELS = {
         "GLOBAL": "Global",
-        "FAVRECENT": "Favorites/Recent",
+        "FAVRECENT": "Recent/Favorites",
         "SETTINGS": "Settings",
         "MODS": "Mods",
         "UPDATES": "Updates",
