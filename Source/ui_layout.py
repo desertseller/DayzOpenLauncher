@@ -1,4 +1,3 @@
-import textwrap
 import platform
 from prompt_toolkit.layout import Layout, HSplit, VSplit, Window, FormattedTextControl, FloatContainer, Float, DynamicContainer, ConditionalContainer
 from prompt_toolkit.layout.dimension import Dimension
@@ -102,26 +101,11 @@ class UILayout:
             tui.dayz_path_input
         )
 
-        tui.updates_control = FormattedTextControl(
-            text=lambda: self._get_updates_text(),
-            focusable=True
-        )
-        updates_content = Frame(
-            HSplit([
-                Window(height=1),
-                Window(content=tui.updates_control),
-                Window(height=1),
-            ]),
-            title="Updates"
-        )
-
         def get_body():
             if tui.current_tab == "SETTINGS":
                 return settings_content
             elif tui.current_tab == "MODS":
                 return mods_content
-            elif tui.current_tab == "UPDATES":
-                return updates_content
             elif tui.current_tab == "FAVRECENT":
                 return favrecent_content
             return main_content
@@ -141,7 +125,7 @@ class UILayout:
                 title_frame,
                 Window(content=FormattedTextControl(text=lambda: self.view_renderer.get_tabs_text(tui.current_tab, tui.tabs)), height=1),
                 DynamicContainer(get_body),
-                Window(content=FormattedTextControl(text=lambda: self.view_renderer.get_footer_text()), height=1),
+                Window(content=FormattedTextControl(text=lambda: self.view_renderer.get_footer_text(tui.latest_update_info)), height=1),
             ]),
             floats=[
                 Float(content=ConditionalContainer(
@@ -163,45 +147,3 @@ class UILayout:
                 width=50,
             )
         )
-
-    def _get_updates_text(self):
-        if not self.tui.latest_update_info:
-
-            return [
-                ("ansiyellow bold", " --- GitHub Updates ---\n\n"),
-                ("", f" Current version: {VERSION}\n\n"),
-                ("ansigreen", " You are up to date!\n\n"),
-            ]
-
-        info = self.tui.latest_update_info
-        res = [
-            ("ansiyellow bold", "--- New version available ---\n\n"),
-            ("ansicyan", f" Version: {info['tag']}\n"),
-            ("", f" Your version: {VERSION}\n\n"),
-            ("ansiwhite bold", " Changelog:\n"),
-        ]
-        
-        body = info.get("body", "")
-        if body:
-            raw_lines = body.splitlines()
-            display_lines = []
-            
-            for line in raw_lines:
-                if not line.strip():
-                    display_lines.append("")
-                    continue
-                wrapped = textwrap.wrap(line, width=95, initial_indent="  ", subsequent_indent="  ")
-                display_lines.extend(wrapped)
-            
-            for line in display_lines[:18]:
-                res.append(("", f"{line}\n"))
-                
-            if len(display_lines) > 18:
-                res.append(("", "  ...\n"))
-        
-        res.append(("", "\n"))
-        
-        update_text = " Press ENTER to open browser and download setup\n"
-            
-        res.append(("ansigreen bold", update_text))
-        return res

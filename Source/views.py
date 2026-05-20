@@ -18,7 +18,6 @@ class ViewRenderer:
         "FAVRECENT": "Recent/Favorites",
         "SETTINGS": "Settings",
         "MODS": "Mods",
-        "UPDATES": "Updates",
     }
 
     def get_tabs_text(self, current_tab, tabs):
@@ -32,9 +31,11 @@ class ViewRenderer:
                 parts.append(f"  {key}: {label}  ")
         return HTML("".join(parts))
 
-    def get_footer_text(self):
+    def get_footer_text(self, update_info=None):
         tabs_count = len(self.app.tabs) if self.app else 4
         footer = f" <b>F1-F{tabs_count}</b>: Tabs | <b>←/→</b>: Switch between windows | <b>F7</b>: Fav | <b>F8</b>: Refresh | <b>Ctrl+C</b>: Quit | <b>PageUp/PageDown</b>: Scroll Page | <b>Build:</b> {BUILD_INFO} "
+        if update_info:
+            footer += f" <ansiyellow>Update available: {update_info['tag']}</ansiyellow> "
         return HTML(footer)
 
     def get_settings_view(self, nick_input, dayz_path_input):

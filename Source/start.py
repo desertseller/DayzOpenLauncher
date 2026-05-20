@@ -80,7 +80,7 @@ class DayZLauncherTUI:
         self.refresh_lock = threading.Lock()
         self.search_timer = None
         self.current_tab = "GLOBAL"
-        self.tabs = ["GLOBAL", "FAVRECENT", "SETTINGS", "MODS"]
+        self.tabs = ["GLOBAL", "FAVRECENT", "SETTINGS", "MODS"]  # UPDATES removed
         self.show_launch_dialog = False
         self.launch_message = ""
         self.latest_update_info = None
@@ -227,12 +227,6 @@ class DayZLauncherTUI:
             elif tab_name == "MODS":
                 self.mod_manager.clear_cache() #ref mods on entry
                 self.app.layout.focus(self.installed_mods_control)
-            elif tab_name == "UPDATES":
-                 # focus the updates text control if available
-                 try:
-                     self.app.layout.focus(self.updates_control)
-                 except:
-                     self.app.layout.focus(self.search_filter)
             elif tab_name == "FAVRECENT":
                 if self.favrecent_pane == "recent":
                     self.app.layout.focus(self.recent_control)

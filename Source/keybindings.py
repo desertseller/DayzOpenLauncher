@@ -43,8 +43,6 @@ class KeyBinder:
                         target_control = self.tui.installed_mods_control
                     elif self.tui.current_tab == "FAVRECENT":
                         target_control = self.tui.recent_control if self.tui.favrecent_pane == "recent" else self.tui.favorites_control
-                    elif self.tui.current_tab == "UPDATES":
-                        target_control = self.tui.updates_control
 
                     if self.tui.current_tab == "GLOBAL" and event.app.layout.has_focus(self.tui.search_filter):
                         event.app.layout.focus(target_control)
@@ -73,8 +71,6 @@ class KeyBinder:
                 elif self.tui.current_tab == "FAVRECENT":
                     target = self.tui.recent_control if self.tui.favrecent_pane == "recent" else self.tui.favorites_control
                     event.app.layout.focus(target)
-                elif self.tui.current_tab == "UPDATES":
-                    event.app.layout.focus(self.tui.updates_control)
                 else:
                     event.app.layout.focus(self.tui.content_control)
             except:
@@ -93,19 +89,6 @@ class KeyBinder:
         def _settings(event): self.tui.switch_tab("SETTINGS")
         @kb.add('f4')
         def _mods(event): self.tui.switch_tab("MODS")
-        @kb.add('f5')
-        def _updates(event):
-            if "UPDATES" in self.tui.tabs:
-                self.tui.switch_tab("UPDATES")
-
-        @kb.add('enter', filter=Condition(lambda: self.tui.current_tab == "UPDATES" and not self.tui.show_launch_dialog))
-        def _start_update(event):
-            if self.tui.latest_update_info:
-                if hasattr(self.tui, 'update_checker'):
-                    self.tui.update_checker.start_update_process()
-                else:
-                    import webbrowser
-                    webbrowser.open(self.tui.latest_update_info.get("url", "https://github.com/PawelKawka/DayzOpenLauncher/releases"))
 
         @kb.add('f7')
         def _favorite_global(event):
@@ -239,9 +222,6 @@ class KeyBinder:
         @kb.add('enter', filter=Condition(lambda: not self.tui.show_launch_dialog))
         def _join(event):
             try:
-                if self.tui.current_tab == "UPDATES":
-                    return
-
                 if self.tui.current_tab == "FAVRECENT":
                     servers = self.tui.active_pane_servers
                     idx = self.tui.active_pane_index
