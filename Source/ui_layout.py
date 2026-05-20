@@ -1,6 +1,7 @@
 import textwrap
 import platform
 from prompt_toolkit.layout import Layout, HSplit, VSplit, Window, FormattedTextControl, FloatContainer, Float, DynamicContainer, ConditionalContainer
+from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.widgets import Frame, TextArea, Label, Button, Shadow
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.filters import Condition
@@ -87,8 +88,8 @@ class UILayout:
         ])
 
         favrecent_content = VSplit([
-            Frame(tui.recent_window, title="Recent"),
-            Frame(tui.favorites_window, title="Favorites"),
+            Frame(tui.recent_window, title="Recent", width=Dimension(weight=1)),
+            Frame(tui.favorites_window, title="Favorites", width=Dimension(weight=1)),
         ])
 
         mods_content = Frame(
