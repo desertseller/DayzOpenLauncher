@@ -1,13 +1,6 @@
 import threading
 import time
 import requests
-import webbrowser
-import os
-import sys
-import subprocess
-import platform
-from pathlib import Path
-from prompt_toolkit.filters import Condition
 from constants import VERSION
 
 class UpdateChecker:
@@ -37,19 +30,11 @@ class UpdateChecker:
                     if is_new:
                         self.tui.latest_update_info = {
                             "tag": latest_tag,
-                            "body": data.get("body", ""),
-                            "url": data.get("html_url", "https://github.com/PawelKawka/DayzOpenLauncher/releases")
                         }
-                        
-                        # switch to updates tab
-                        self.tui.switch_tab("UPDATES")
-                        
+
                         if hasattr(self.tui, 'app'):
                             self.tui.app.invalidate()
             except Exception:
                 pass
                 
         threading.Thread(target=_check, daemon=True).start()
-
-    def start_update_process(self):
-        webbrowser.open(self.tui.latest_update_info.get("url", ""))
