@@ -52,8 +52,6 @@ class ViewRenderer:
                         dayz_path_input,
                         
                         Window(height=2),
-                        Window(char="─", height=1, style="ansiwhite dim"),
-                        Window(height=1),
                     ])
                 ]),
                 Window(), 
