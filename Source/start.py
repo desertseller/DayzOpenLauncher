@@ -313,7 +313,8 @@ class DayZLauncherTUI:
              self.data_manager.favrecent_recent,
              self.recent_selected_index,
              self.data_manager.live_info,
-             (pane_width, size.rows)
+             (pane_width, size.rows),
+             is_active_pane=(self.favrecent_pane == "recent")
         )
 
     def get_favorites_list_text(self):
@@ -324,7 +325,8 @@ class DayZLauncherTUI:
              self.data_manager.favrecent_favorites,
              self.favorites_selected_index,
              self.data_manager.live_info,
-             (pane_width, size.rows)
+             (pane_width, size.rows),
+             is_active_pane=(self.favrecent_pane == "favorites")
         )
 
     def run(self):

@@ -60,7 +60,7 @@ class ViewRenderer:
             title="Settings"
         )
 
-    def _render_server_table(self, filtered_servers, selected_index, live_info, width, rows):
+    def _render_server_table(self, filtered_servers, selected_index, live_info, width, rows, is_active_pane=True):
         table = Table(box=box.MINIMAL, expand=True, show_header=True, header_style="bold cyan")
         table.add_column("SEL", width=3, justify="center")
         table.add_column("SERVER NAME", no_wrap=True)
@@ -87,10 +87,10 @@ class ViewRenderer:
 
             is_fav = (str(s.get('ip')), str(s.get('port'))) in fav_keys
 
-            style = "bold white on blue" if is_sel else ""
-            if is_fav and not is_sel:
+            style = "bold white on blue" if (is_sel and is_active_pane) else ""
+            if is_fav and not (is_sel and is_active_pane):
                 style = "bold yellow"
-            elif is_fav and is_sel:
+            elif is_fav and (is_sel and is_active_pane):
                 style = "bold yellow on blue"
 
             live = live_info.get((s.get('ip'), s.get('port')))
@@ -130,7 +130,7 @@ class ViewRenderer:
                     elif p_val <= 150: ping_display = f"[yellow]{s_ping}[/yellow]"
                     else: ping_display = f"[red]{s_ping}[/red]"
 
-                    if is_sel:
+                    if is_sel and is_active_pane:
                          if p_val <= 75: ping_display = f"[bold green]{s_ping}[/bold green]"
                          elif p_val <= 150: ping_display = f"[bold yellow]{s_ping}[/bold yellow]"
                          else: ping_display = f"[bold red]{s_ping}[/bold red]"
@@ -138,7 +138,7 @@ class ViewRenderer:
                     pass
 
             table.add_row(
-                ">" if is_sel else " ",
+                ">" if (is_sel and is_active_pane) else " ",
                 name_display[:(width-56)],
                 p_str,
                 q_display,
@@ -172,10 +172,10 @@ class ViewRenderer:
         if width < 40: width = 80
         return self._render_server_table(filtered_servers, selected_index, live_info, width, rows)
 
-    def get_pane_server_list_text(self, filtered_servers, selected_index, live_info, output_size):
+    def get_pane_server_list_text(self, filtered_servers, selected_index, live_info, output_size, is_active_pane=False):
         if not filtered_servers:
             return "No servers found."
         cols, rows = output_size
         width = cols
         if width < 40: width = 80
-        return self._render_server_table(filtered_servers, selected_index, live_info, width, rows)
+        return self._render_server_table(filtered_servers, selected_index, live_info, width, rows, is_active_pane)
