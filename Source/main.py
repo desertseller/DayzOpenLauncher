@@ -24,35 +24,33 @@ else:
     sys.path.insert(0, os.path.dirname(__file__))
 
 from constants import VERSION
+from version_utils import is_newer_version
 
 def check_for_updates():
     repo = "PawelKawka/DayzOpenLauncher"
     api_url = f"https://api.github.com/repos/{repo}/releases/latest"
-    
+
     try:
         logging.info("Checking for updates...")
         response = requests.get(api_url, timeout=5)
-        response.raise_for_status()
-        data = response.json()
-        latest_tag = data.get("tag_name", "").lstrip('v')
-        
         try:
-            latest_clean = latest_tag.split('-')[0].split(' ')[0]
-            current_clean = VERSION.split('-')[0].split(' ')[0]
-            latest_parts = [int(p) for p in latest_clean.split('.') if p.isdigit()]
-            current_parts = [int(p) for p in current_clean.split('.') if p.isdigit()]
-            is_new = latest_parts > current_parts
-        except Exception:
-            is_new = latest_tag != VERSION
+            response.raise_for_status()
+            data = response.json()
+            latest_tag = data.get("tag_name", "").lstrip('v')
 
-        if is_new:
-            logging.info(f"New version available: {latest_tag}")
-            return True, latest_tag
+            if is_newer_version(latest_tag, VERSION):
+                logging.info(f"New version available: {latest_tag}")
+                return True, latest_tag
+        finally:
+            try:
+                response.close()
+            except Exception:
+                pass
     except requests.exceptions.RequestException as e:
         logging.error(f"Network error while checking for updates: {e}")
     except Exception as e:
         logging.error(f"Unexpected error while checking for updates: {e}")
-    
+
     return False, None
 
 if __name__ == "__main__":

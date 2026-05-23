@@ -1,6 +1,7 @@
 import json
 import os
 import platform
+import threading
 from constants import CONFIG_FILE_NAME, DEFAULT_PROFILE_NAME, APP_NAME
 
 class Config:
@@ -12,6 +13,7 @@ class Config:
             self.config_file = config_file
             self.config_dir = os.path.dirname(self.config_file)
         os.makedirs(self.config_dir, exist_ok=True)
+        self._lock = threading.Lock()
         self.data = {
             "servers": [],
             "recent_servers": [],
@@ -29,22 +31,24 @@ class Config:
         return os.path.join(os.path.expanduser("~"), APP_NAME)
 
     def load(self):
-        if os.path.exists(self.config_file):
-            try:
-                with open(self.config_file, "r") as f:
-                    loaded = json.load(f)
-                    for key, value in self.data.items():
-                        if key in loaded:
-                            self.data[key] = loaded[key]
-            except Exception as e:
-                print(f"Error loading config: {e}")
+        with self._lock:
+            if os.path.exists(self.config_file):
+                try:
+                    with open(self.config_file, "r") as f:
+                        loaded = json.load(f)
+                        for key, value in self.data.items():
+                            if key in loaded:
+                                self.data[key] = loaded[key]
+                except Exception as e:
+                    print(f"Error loading config: {e}")
 
     def save(self):
-        try:
-            with open(self.config_file, "w") as f:
-                json.dump(self.data, f, indent=4)
-        except Exception as e:
-            print(f"Error saving config: {e}")
+        with self._lock:
+            try:
+                with open(self.config_file, "w") as f:
+                    json.dump(self.data, f, indent=4)
+            except Exception as e:
+                print(f"Error saving config: {e}")
 
     def get(self, key, default=None):
         val = self.data.get(key, default)

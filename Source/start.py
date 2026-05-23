@@ -41,24 +41,36 @@ if platform.system() == "Windows":
         from windows.utils import setup_env, get_steam_path, get_dayz_path
         setup_env()
     except Exception:
-        def get_steam_path(): return None
-        def get_dayz_path(p): return None
+        def get_steam_path():
+            return None
+        def get_dayz_path(p):
+            return None
 else:
-    # default fallback for any other platform
-    def get_steam_path(): return None
-    def get_dayz_path(p): return None
+    def get_steam_path():
+        return None
+    def get_dayz_path(p):
+        return None
+
 
 class DayZLauncherTUI:
+
     def __init__(self):
         self.running = True
+        self._init_data()
+        self._init_state()
+        self._init_ui()
+        self._init_background_loops()
+
+    def _init_data(self):
         self.data_manager = DataManager()
         self.mod_manager = ModManager(self.data_manager.config)
         self.server_actions = ServerActions(self.data_manager.config)
         self.view_renderer = ViewRenderer(self.data_manager.config, self)
+        self._ensure_dayz_path()
 
+    def _ensure_dayz_path(self):
         current_path = self.data_manager.config.get("dayz_path")
 
-        # validate path
         path_invalid = False
         if current_path and current_path != "CANNOT FIND PATH":
             if platform.system() == "Windows" and current_path.startswith("/"):
@@ -69,10 +81,10 @@ class DayZLauncherTUI:
             path = get_dayz_path(steam)
             if path:
                 self.data_manager.config.set("dayz_path", path)
-            else:
-                if not current_path: # set only if empty
-                     self.data_manager.config.set("dayz_path", "CANNOT FIND PATH")
+            elif not current_path:
+                self.data_manager.config.set("dayz_path", "CANNOT FIND PATH")
 
+    def _init_state(self):
         self.selected_index = 0
         self.recent_selected_index = 0
         self.favorites_selected_index = 0
@@ -80,16 +92,19 @@ class DayZLauncherTUI:
         self.refresh_lock = threading.Lock()
         self.search_timer = None
         self.current_tab = "GLOBAL"
-        self.tabs = ["GLOBAL", "FAVRECENT", "SETTINGS", "MODS"]  # UPDATES removed
+        self.tabs = ["GLOBAL", "FAVRECENT", "SETTINGS", "MODS"]
         self.show_launch_dialog = False
         self.launch_message = ""
         self.latest_update_info = None
         self.run_update_on_exit = False
 
+
+    def _init_ui(self):
         self.live_updater = LiveUpdater(
-             self.data_manager.browser,
-             self.data_manager.live_info,
-             lambda: self.app.invalidate() if hasattr(self, 'app') else None
+            self.data_manager.browser,
+            self.data_manager.live_info,
+            lambda: self.app.invalidate() if hasattr(self, 'app') else None,
+            self.data_manager.live_info_lock
         )
 
         self.ui_layout = UILayout(self, self.view_renderer)
@@ -112,6 +127,7 @@ class DayZLauncherTUI:
             full_screen=True,
         )
 
+    def _init_background_loops(self):
         def _get_live_servers():
             if self.current_tab == "FAVRECENT":
                 return self.data_manager.favrecent_recent + self.data_manager.favrecent_favorites
@@ -123,7 +139,7 @@ class DayZLauncherTUI:
             return self.selected_index
 
         self.live_updater.start_loop(_get_live_servers, _get_live_index)
-        
+
         self.refresh_data()
         self._start_mod_loop()
 
@@ -136,23 +152,23 @@ class DayZLauncherTUI:
             while self.running:
                 try:
                     time.sleep(10)
-                    if not self.running: break
+                    if not self.running:
+                        break
                     if self.current_tab == "MODS" and not self.mod_manager.cached_installed_mods:
                         if hasattr(self, 'app'):
                             self.app.invalidate()
                 except Exception:
                     pass
-        t = threading.Thread(target=_mod_checker, daemon=True)
-        t.start()
 
+        threading.Thread(target=_mod_checker, daemon=True).start()
 
 
     def _close_launch(self):
-        self.server_actions.cancel_launch() #d
+        self.server_actions.cancel_launch()
         self.show_launch_dialog = False
         try:
             self.app.layout.focus(self.content_control)
-        except:
+        except Exception:
             pass
 
     def refresh_data(self):
@@ -161,14 +177,16 @@ class DayZLauncherTUI:
                 return
             try:
                 self.data_manager.loading = True
-                if hasattr(self, 'app'): self.app.invalidate()
+                if hasattr(self, 'app'):
+                    self.app.invalidate()
                 self.data_manager.fetch_data(force=True)
                 self.update_filtered()
             finally:
                 self.data_manager.loading = False
-                if hasattr(self, 'app'): self.app.invalidate()
+                if hasattr(self, 'app'):
+                    self.app.invalidate()
                 self.refresh_lock.release()
-            
+
             if hasattr(self, 'update_checker'):
                 self.update_checker.start_check()
 
@@ -178,37 +196,37 @@ class DayZLauncherTUI:
         self.selected_index = 0
         self.recent_selected_index = 0
         self.favorites_selected_index = 0
-
         self.update_filtered()
 
-        if self.current_tab == "GLOBAL":
-            if self.search_timer:
-                self.search_timer.cancel()
-            
-            def do_search():
-                st = self.search_filter.text
-                if len(st) >= 2 or (len(st) == 0 and self.data_manager.last_search_text):
-                    self.data_manager.fetch_data(st)
-                    self.update_filtered()
-                    if hasattr(self, 'app'):
-                        self.app.invalidate()
+        if self.current_tab != "GLOBAL":
+            return
 
-            self.search_timer = threading.Timer(0.6, do_search)
-            self.search_timer.start()
+        if self.search_timer:
+            self.search_timer.cancel()
+
+        def do_search():
+            st = self.search_filter.text
+            if len(st) >= 2 or (len(st) == 0 and self.data_manager.last_search_text):
+                self.data_manager.fetch_data(st)
+                self.update_filtered()
+                if hasattr(self, 'app'):
+                    self.app.invalidate()
+
+        self.search_timer = threading.Timer(0.6, do_search)
+        self.search_timer.start()
 
     def update_filtered(self):
-        self.data_manager.update_filtered(
-            self.current_tab,
-            self.search_filter.text
-        )
+        self.data_manager.update_filtered(self.current_tab, self.search_filter.text)
         if self.current_tab == "FAVRECENT":
-            if self.recent_selected_index >= len(self.data_manager.favrecent_recent):
-                self.recent_selected_index = max(0, len(self.data_manager.favrecent_recent) - 1)
-            if self.favorites_selected_index >= len(self.data_manager.favrecent_favorites):
-                self.favorites_selected_index = max(0, len(self.data_manager.favrecent_favorites) - 1)
+            self._clamp_index(self.recent_selected_index, len(self.data_manager.favrecent_recent), 'recent')
+            self._clamp_index(self.favorites_selected_index, len(self.data_manager.favrecent_favorites), 'favorites')
         else:
             if self.selected_index >= len(self.data_manager.filtered_servers):
                 self.selected_index = max(0, len(self.data_manager.filtered_servers) - 1)
+
+    def _clamp_index(self, current_value, list_len, attr_name):
+        if current_value >= list_len:
+            setattr(self, f"{attr_name}_selected_index", max(0, list_len - 1))
 
     def switch_tab(self, tab_name):
         self.current_tab = tab_name
@@ -220,62 +238,70 @@ class DayZLauncherTUI:
         if hasattr(self, 'app'):
             self.app.invalidate()
 
-        try:
-            if tab_name == "SETTINGS":
-                self.app.layout.focus(self.nick_input)
-                self.nick_input.buffer.cursor_position = len(self.nick_input.text)
-            elif tab_name == "MODS":
-                self.mod_manager.clear_cache() #ref mods on entry
-                self.app.layout.focus(self.installed_mods_control)
-            elif tab_name == "FAVRECENT":
-                if self.favrecent_pane == "recent":
-                    self.app.layout.focus(self.recent_control)
-                else:
-                    self.app.layout.focus(self.favorites_control)
-            else:
-                self.app.layout.focus(self.content_control)
-        except (ValueError, AttributeError):
-            # fallback
-            try:
-                self.app.layout.focus(self.search_filter)
-            except:
-                pass
+        if tab_name == "MODS":
+            self.mod_manager.clear_cache()
+
+        self._focus_tab_control(tab_name)
 
         if hasattr(self, 'app'):
             self.app.invalidate()
+
+    def _focus_tab_control(self, tab_name):
+        focus_map = {
+            "SETTINGS": self.nick_input,
+            "MODS": self.installed_mods_control,
+        }
+        target = focus_map.get(tab_name)
+        if tab_name == "FAVRECENT":
+            target = (self.recent_control if self.favrecent_pane == "recent"
+                      else self.favorites_control)
+        if target is None:
+            target = self.content_control
+
+        try:
+            self.app.layout.focus(target)
+            if hasattr(target, 'buffer') and hasattr(target.buffer, 'cursor_position'):
+                target.buffer.cursor_position = len(target.text)
+        except (ValueError, AttributeError):
+            try:
+                self.app.layout.focus(self.search_filter)
+            except Exception:
+                pass
+
 
     def join_server_wrapper(self, server):
         def on_start(msg):
             self.launch_message = msg
             self.show_launch_dialog = True
             self.app.invalidate()
-        
+
         def on_end(success, err):
             if not success:
-                 self.launch_message = err
+                self.launch_message = err
             else:
-                 self.show_launch_dialog = False
-                 try:
-                     self.app.layout.focus(self.content_control)
-                 except: pass
-            
+                self.show_launch_dialog = False
+                try:
+                    self.app.layout.focus(self.content_control)
+                except Exception:
+                    pass
             self.app.invalidate()
-            
+
         self.server_actions.join_server(server, on_start, on_end)
 
     def get_server_list_text(self):
-        if not hasattr(self, 'app'): return ""
+        if not hasattr(self, 'app'):
+            return ""
         size = self.app.renderer.output.get_size()
         return self.view_renderer.get_server_list_text(
-             self.data_manager.filtered_servers,
-             self.selected_index,
-             self.data_manager.live_info,
-             self.data_manager.loading,
-             self.current_tab,
-             (size.columns, size.rows),
-             self.search_filter.text
+            self.data_manager.filtered_servers,
+            self.selected_index,
+            self.data_manager.live_info,
+            self.data_manager.loading,
+            self.current_tab,
+            (size.columns, size.rows),
+            self.search_filter.text
         )
-    
+
     def get_mod_list_text(self):
         server = None
         if self.data_manager.filtered_servers and self.selected_index < len(self.data_manager.filtered_servers):
@@ -289,15 +315,13 @@ class DayZLauncherTUI:
 
     @property
     def active_pane_servers(self):
-        if self.favrecent_pane == "recent":
-            return self.data_manager.favrecent_recent
-        return self.data_manager.favrecent_favorites
+        return (self.data_manager.favrecent_recent if self.favrecent_pane == "recent"
+                else self.data_manager.favrecent_favorites)
 
     @property
     def active_pane_index(self):
-        if self.favrecent_pane == "recent":
-            return self.recent_selected_index
-        return self.favorites_selected_index
+        return (self.recent_selected_index if self.favrecent_pane == "recent"
+                else self.favorites_selected_index)
 
     def set_active_pane_index(self, value):
         if self.favrecent_pane == "recent":
@@ -305,29 +329,34 @@ class DayZLauncherTUI:
         else:
             self.favorites_selected_index = value
 
-    def get_recent_list_text(self):
-        if not hasattr(self, 'app'): return ""
+    def _get_pane_size(self):
+        if not hasattr(self, 'app'):
+            return (80, 24)
         size = self.app.renderer.output.get_size()
         pane_width = max(40, size.columns // 2 - 4)
+        return pane_width, size.rows
+
+    def get_recent_list_text(self):
+        pane_width, rows = self._get_pane_size()
         return self.view_renderer.get_pane_server_list_text(
-             self.data_manager.favrecent_recent,
-             self.recent_selected_index,
-             self.data_manager.live_info,
-             (pane_width, size.rows),
-             is_active_pane=(self.favrecent_pane == "recent")
+            self.data_manager.favrecent_recent,
+            self.recent_selected_index,
+            self.data_manager.live_info,
+            (pane_width, rows),
+            is_active_pane=(self.favrecent_pane == "recent")
         )
 
     def get_favorites_list_text(self):
-        if not hasattr(self, 'app'): return ""
-        size = self.app.renderer.output.get_size()
-        pane_width = max(40, size.columns // 2 - 4)
+        pane_width, rows = self._get_pane_size()
         return self.view_renderer.get_pane_server_list_text(
-             self.data_manager.favrecent_favorites,
-             self.favorites_selected_index,
-             self.data_manager.live_info,
-             (pane_width, size.rows),
-             is_active_pane=(self.favrecent_pane == "favorites")
+            self.data_manager.favrecent_favorites,
+            self.favorites_selected_index,
+            self.data_manager.live_info,
+            (pane_width, rows),
+            is_active_pane=(self.favrecent_pane == "favorites")
         )
+
+    # ── App lifecycle ────────────────────────────────────────────
 
     def run(self):
         try:
@@ -336,9 +365,8 @@ class DayZLauncherTUI:
                     self.app.run()
                 except (KeyboardInterrupt, EOFError):
                     pass
-        except Exception as e:
-            with open("crash_log.txt", "w") as f:
-                import traceback
+        except Exception:
+            with open("crash_log.txt", "w", encoding="utf-8") as f:
                 traceback.print_exc(file=f)
         finally:
             self._cleanup()
@@ -346,21 +374,29 @@ class DayZLauncherTUI:
     def _cleanup(self):
         self.running = False
         try:
+            if hasattr(self, 'search_timer') and self.search_timer:
+                self.search_timer.cancel()
+        except Exception:
+            pass
+        try:
             if hasattr(self, 'live_updater'):
                 self.live_updater.stop()
             if hasattr(self, 'data_manager') and hasattr(self.data_manager, 'browser'):
                 self.data_manager.browser.close()
-        except:
+        except Exception:
             pass
-        
         try:
-            sys.stdout.write("\033[?1000l\033[?1002l\033[?1003l\033[?1004l\033[?1005l\033[?1006l\033[?1015l\033[?25h")
+            sys.stdout.write(
+                "\033[?1000l\033[?1002l\033[?1003l\033[?1004l"
+                "\033[?1005l\033[?1006l\033[?1015l\033[?25h"
+            )
             sys.stdout.flush()
-        except:
+        except Exception:
             pass
 
         if not self.run_update_on_exit:
             os._exit(0)
+
 
 if __name__ == "__main__":
     tui = DayZLauncherTUI()

@@ -1,6 +1,8 @@
 import time
+import threading
 from config import Config
 from server_browser import ServerBrowser
+
 
 class DataManager:
     def __init__(self):
@@ -15,21 +17,34 @@ class DataManager:
         self.last_search_text = ""
         self.last_fetch_ts = 0.0
         self.loading = True
+        self.live_info_lock = threading.Lock()
+
+#helpers
+
+    def _build_lookup_cache(self):
+        return {
+            f"{s.get('ip')}:{s.get('port')}": s for s in self.all_servers
+        } if self.all_servers else {}
 
     def _enrich_servers(self, source):
         enriched = []
         if not hasattr(self, '_lookup_cache') or self._lookup_cache.get('ts') != self.last_fetch_ts:
-             self._lookup_cache = {
-                 'ts': self.last_fetch_ts,
-                 'data': {f"{s.get('ip')}:{s.get('port')}": s for s in self.all_servers} if self.all_servers else {}
-             }
+            self._lookup_cache = {
+                'ts': self.last_fetch_ts,
+                'data': self._build_lookup_cache()
+            }
         global_lookup = self._lookup_cache['data']
 
-        for s in source:
-            key_str = f"{s.get('ip')}:{s.get('port')}"
-            key_tuple = (s.get('ip'), s.get('port'))
+        with self.live_info_lock:
+            live_info_local = dict(self.live_info)
 
-            combined = s.copy()
+        for server in source:
+            ip = server.get('ip')
+            port = server.get('port')
+            key_str = f"{ip}:{port}"
+            key_tuple = (ip, port)
+
+            combined = server.copy()
 
             if key_str in global_lookup:
                 live = global_lookup[key_str]
@@ -42,22 +57,43 @@ class DataManager:
                     'mods': live.get('mods', [])
                 })
 
-            if key_tuple in self.live_info:
-                live = self.live_info[key_tuple]
+            if key_tuple in live_info_local:
+                live = live_info_local[key_tuple]
                 for field in ['players', 'max_players', 'queue', 'time', 'map']:
                     val = live.get(field)
                     if val is not None and val != '?':
-                         combined[field] = val
-
+                        combined[field] = val
                 if live.get('mods'):
-                     combined['mods'] = live['mods']
+                    combined['mods'] = live['mods']
 
             enriched.append(combined)
         return enriched
 
+    def _apply_filters(self, source, query):
+        if not query:
+            return list(source)
+        query = query.lower()
+        return [
+            s for s in source
+            if query in s.get('name', '').lower() or query in str(s.get('ip', ''))
+        ]
+
+    def _get_player_count(self, server):
+        key = (server.get('ip'), server.get('port'))
+        with self.live_info_lock:
+            if key in self.live_info:
+                p = self.live_info[key].get('players', 0)
+            else:
+                p = server.get('players', 0)
+        try:
+            return int(p)
+        except (ValueError, TypeError):
+            return 0
+
     def fetch_data(self, search_text=None, force=False):
         self.loading = True
-        self.live_info.clear()
+        with self.live_info_lock:
+            self.live_info.clear()
         try:
             if search_text and len(search_text) >= 2:
                 result = self.browser.fetch_global_servers(search_text=search_text, force=force)
@@ -65,7 +101,7 @@ class DataManager:
                 self.last_search_text = search_text
             else:
                 result = self.browser.fetch_global_servers(force=force)
-                if result:
+                if result is not None:
                     self.all_servers = result
                     self.last_good_servers = result
                     self.last_fetch_ts = time.time()
@@ -80,58 +116,40 @@ class DataManager:
         if self.loading:
             return self.filtered_servers
 
-        name_q = search_text.lower()
-
-        def apply_filters(source):
-            out = []
-            for s in source:
-                name = s.get('name', '').lower()
-                ip = str(s.get('ip', ''))
-                if not name_q or name_q in name or name_q in ip:
-                    out.append(s)
-            return out
-
-        def get_player_count(server):
-            key = (server.get('ip'), server.get('port'))
-            if key in self.live_info:
-                p = self.live_info[key].get('players', 0)
-            else:
-                p = server.get('players', 0)
-            try:
-                return int(p)
-            except:
-                return 0
-
         if current_tab == "FAVRECENT":
-            recent_source = self.config.get("recent_servers", [])
-            fav_source = self.config.get("servers", [])
+            return self._update_favrecent(search_text)
 
-            self.favrecent_recent = apply_filters(self._enrich_servers(recent_source))
-            self.favrecent_favorites = apply_filters(self._enrich_servers(fav_source))
+        return self._update_standard(current_tab, search_text)
 
-            self.favrecent_recent.sort(key=get_player_count, reverse=True)
-            self.favrecent_favorites.sort(key=get_player_count, reverse=True)
+    def _update_favrecent(self, search_text):
+        recent_raw = self.config.get("recent_servers", [])
+        fav_raw = self.config.get("servers", [])
 
-            self.filtered_servers = []
-            return self.filtered_servers
+        self.favrecent_recent = self._apply_filters(self._enrich_servers(recent_raw), search_text)
+        self.favrecent_favorites = self._apply_filters(self._enrich_servers(fav_raw), search_text)
 
-        if current_tab == "GLOBAL":
-            source = self.all_servers
-        elif current_tab == "FAVORITES":
-            source = self.config.get("servers", [])
-        elif current_tab == "RECENT":
-            source = self.config.get("recent_servers", [])
-        else:
-            source = []
+        self.favrecent_recent.sort(key=self._get_player_count, reverse=True)
+        self.favrecent_favorites.sort(key=self._get_player_count, reverse=True)
 
-        if current_tab in ["FAVORITES", "RECENT"]:
+        self.filtered_servers = []
+        return self.filtered_servers
+
+    def _update_standard(self, current_tab, search_text):
+        tab_source_map = {
+            "GLOBAL": self.all_servers,
+            "FAVORITES": self.config.get("servers", []),
+            "RECENT": self.config.get("recent_servers", []),
+        }
+        source = tab_source_map.get(current_tab, [])
+
+        if current_tab in ("FAVORITES", "RECENT"):
             source = self._enrich_servers(source)
 
-        self.filtered_servers = apply_filters(source)
+        self.filtered_servers = self._apply_filters(source, search_text)
 
         if current_tab == "GLOBAL" and not self.filtered_servers and self.last_good_servers:
             if source is not self.last_good_servers:
-                self.filtered_servers = apply_filters(self.last_good_servers)
+                self.filtered_servers = self._apply_filters(self.last_good_servers, search_text)
 
-        self.filtered_servers.sort(key=get_player_count, reverse=True)
+        self.filtered_servers.sort(key=self._get_player_count, reverse=True)
         return self.filtered_servers

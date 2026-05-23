@@ -3,10 +3,11 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 
 class LiveUpdater:
-    def __init__(self, browser, live_info, invalidate_cb):
+    def __init__(self, browser, live_info, invalidate_cb, live_info_lock=None):
         self.browser = browser
         self.live_info = live_info
         self.invalidate = invalidate_cb
+        self.live_info_lock = live_info_lock
         self.executor = ThreadPoolExecutor(max_workers=20)
         self.running = True
         self.last_queries = {}
@@ -24,15 +25,27 @@ class LiveUpdater:
                     return False
                 
                 if "error" not in live_data:
-                    self.live_info[(ip, server.get('port'))] = {
-                        'players': live_data.get('players'),
-                        'max_players': live_data.get('max_players'),
-                        'ping': live_data.get('ping'),
-                        'queue': live_data.get('queue'),
-                        'time': live_data.get('time'),
-                        'map': live_data.get('map'),
-                        'mods': live_data.get('mods', [])
-                    }
+                    if self.live_info_lock:
+                        with self.live_info_lock:
+                            self.live_info[(ip, server.get('port'))] = {
+                                'players': live_data.get('players'),
+                                'max_players': live_data.get('max_players'),
+                                'ping': live_data.get('ping'),
+                                'queue': live_data.get('queue'),
+                                'time': live_data.get('time'),
+                                'map': live_data.get('map'),
+                                'mods': live_data.get('mods', [])
+                            }
+                    else:
+                        self.live_info[(ip, server.get('port'))] = {
+                            'players': live_data.get('players'),
+                            'max_players': live_data.get('max_players'),
+                            'ping': live_data.get('ping'),
+                            'queue': live_data.get('queue'),
+                            'time': live_data.get('time'),
+                            'map': live_data.get('map'),
+                            'mods': live_data.get('mods', [])
+                        }
                     return True
         except:
             pass
@@ -68,7 +81,10 @@ class LiveUpdater:
                         
                         if now - last > 5.0:
                              self.last_queries[key] = now
-                             self.executor.submit(self.query_worker, s)
+                             try:
+                                 self.executor.submit(self.query_worker, s)
+                             except RuntimeError:
+                                 break
                              tasks_submitted = True
                     
                     if tasks_submitted and self.invalidate:
