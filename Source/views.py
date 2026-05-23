@@ -4,9 +4,9 @@ from rich.console import Console
 from rich import box
 from prompt_toolkit.formatted_text import ANSI, HTML
 from prompt_toolkit.layout import HSplit, VSplit, Window
-from prompt_toolkit.widgets import Frame,  Label
-from prompt_toolkit.layout.controls import FormattedTextControl
-from constants import VERSION, BUILD_INFO
+from prompt_toolkit.widgets import Frame, Label
+from constants import BUILD_INFO
+
 
 class ViewRenderer:
     def __init__(self, config, app_instance=None):
@@ -23,7 +23,7 @@ class ViewRenderer:
     def get_tabs_text(self, current_tab, tabs):
         parts = []
         for tab in tabs:
-            key = f"F{tabs.index(tab)+1}"
+            key = f"F{tabs.index(tab) + 1}"
             label = self.TAB_LABELS.get(tab, tab)
             if tab == current_tab:
                 parts.append(f"<ansiyellow><b> [{key}: {label}] </b></ansiyellow>")
@@ -33,7 +33,11 @@ class ViewRenderer:
 
     def get_footer_text(self, update_info=None):
         tabs_count = len(self.app.tabs) if self.app else 4
-        footer = f" <b>F1-F{tabs_count}</b>: Tabs | <b>←/→</b>: Switch between windows | <b>F7</b>: Fav | <b>F8</b>: Refresh | <b>Ctrl+C</b>: Quit | <b>PageUp/PageDown</b>: Scroll Page | <b>Build:</b> {BUILD_INFO} "
+        footer = (
+            f" <b>F1-F{tabs_count}</b>: Tabs | <b>←/→</b>: Switch between windows | "
+            f"<b>F7</b>: Fav | <b>F8</b>: Refresh | <b>Ctrl+C</b>: Quit | "
+            f"<b>PageUp/PageDown</b>: Scroll Page | <b>Build:</b> {BUILD_INFO} "
+        )
         if update_info:
             footer += f" <ansiyellow>Update available: {update_info['tag']}</ansiyellow> "
         return HTML(footer)
@@ -48,14 +52,12 @@ class ViewRenderer:
                         Label(text="SURVIVOR NAME", style="ansiyellow bold"),
                         nick_input,
                         Window(height=1),
-                        
                         Label(text="INSTALLATION PATH", style="ansiyellow bold"),
                         dayz_path_input,
-                        
                         Window(height=2),
                     ])
                 ]),
-                Window(), 
+                Window(),
             ], padding=0),
             title="Settings"
         )
@@ -70,96 +72,81 @@ class ViewRenderer:
         table.add_column("TIME", width=8)
         table.add_column("PING", width=6, justify="right")
 
-        height = rows - 10
-        if height < 5: height = 20
-
+        height = max(rows - 10, 20)
         start = max(0, selected_index - (height // 2))
         end = min(len(filtered_servers), start + height)
 
-        favs = self.config.get("servers", [])
-        fav_keys = set()
-        for f in favs:
-            fav_keys.add((str(f.get('ip')), str(f.get('port'))))
+        fav_keys = self._build_fav_keys()
 
         for i in range(start, end):
-            s = filtered_servers[i]
+            server = filtered_servers[i]
             is_sel = (i == selected_index)
+            is_fav = (str(server.get('ip')), str(server.get('port'))) in fav_keys
+            style = self._row_style(is_sel, is_fav, is_active_pane)
 
-            is_fav = (str(s.get('ip')), str(s.get('port'))) in fav_keys
+            live = live_info.get((server.get('ip'), server.get('port')))
+            ping_display = self._format_ping(
+                live.get('ping') if live else server.get('ping', '?'),
+                is_sel and is_active_pane
+            )
 
-            style = "bold white on blue" if (is_sel and is_active_pane) else ""
-            if is_fav and not (is_sel and is_active_pane):
-                style = "bold yellow"
-            elif is_fav and (is_sel and is_active_pane):
-                style = "bold yellow on blue"
+            queue_val = live.get('queue', 0) if live else server.get('queue', 0)
+            q_display = str(int(queue_val)) if str(queue_val).isdigit() else "0"
 
-            live = live_info.get((s.get('ip'), s.get('port')))
-
-            if live:
-                queue_val = live.get('queue', 0)
-                players = live.get('players', '?')
-                max_players = live.get('max_players', '?')
-                s_time = live.get('time', s.get('time', '00:00'))
-                s_map = live.get('map') or s.get('map', 'Unknown')
-                s_ping = live.get('ping', '?')
-            else:
-                queue_val = s.get('queue', 0)
-                players = s.get('players', '?')
-                max_players = s.get('max_players', '?')
-                s_time = s.get('time', '00:00')
-                s_map = s.get('map', 'Unknown')
-                s_ping = '?'
-
-            try:
-                q_int = int(queue_val)
-            except:
-                q_int = 0
-
-            q_display = str(q_int) if q_int > 0 else "0"
-            p_str = f"{players}/{max_players}"
-
-            name_display = s.get('name', 'Unknown')
+            name_display = server.get('name', 'Unknown')
             if is_fav:
                 name_display = f"* {name_display}"
 
-            ping_display = str(s_ping)
-            if s_ping != '?':
-                try:
-                    p_val = int(s_ping)
-                    if p_val <= 75: ping_display = f"[green]{s_ping}[/green]"
-                    elif p_val <= 150: ping_display = f"[yellow]{s_ping}[/yellow]"
-                    else: ping_display = f"[red]{s_ping}[/red]"
-
-                    if is_sel and is_active_pane:
-                         if p_val <= 75: ping_display = f"[bold green]{s_ping}[/bold green]"
-                         elif p_val <= 150: ping_display = f"[bold yellow]{s_ping}[/bold yellow]"
-                         else: ping_display = f"[bold red]{s_ping}[/bold red]"
-                except:
-                    pass
-
             table.add_row(
                 ">" if (is_sel and is_active_pane) else " ",
-                name_display[:(width-56)],
-                p_str,
+                name_display[:(width - 56)],
+                f"{live.get('players', '?') if live else server.get('players', '?')}/"
+                f"{live.get('max_players', '?') if live else server.get('max_players', '?')}",
                 q_display,
-                str(s_map),
-                str(s_time),
+                str(live.get('map') or server.get('map', 'Unknown')) if live else str(server.get('map', 'Unknown')),
+                str(live.get('time', server.get('time', '00:00'))) if live else str(server.get('time', '00:00')),
                 ping_display,
                 style=style
             )
 
+        return self._render_console_table(table, width)
+
+    def _build_fav_keys(self):
+        favs = self.config.get("servers", [])
+        return {(str(f.get('ip')), str(f.get('port'))) for f in favs}
+
+    @staticmethod
+    def _row_style(is_selected, is_favorite, is_active_pane):
+        sel = is_selected and is_active_pane
+        if is_favorite:
+            return "bold yellow on blue" if sel else "bold yellow"
+        return "bold white on blue" if sel else ""
+
+    @staticmethod
+    def _format_ping(ping_val, is_selected=False):
+        if ping_val == '?' or ping_val is None:
+            return "?"
+        try:
+            p = int(ping_val)
+        except (ValueError, TypeError):
+            return str(ping_val)
+
+        color = "green" if p <= 75 else "yellow" if p <= 150 else "red"
+        if is_selected:
+            return f"[bold {color}]{ping_val}[/bold {color}]"
+        return f"[{color}]{ping_val}[/{color}]"
+
+    @staticmethod
+    def _render_console_table(table, width):
         output = io.StringIO()
         console = Console(file=output, force_terminal=True, color_system="standard", width=width)
         console.print(table)
         result = ANSI(output.getvalue())
-        try:
-            output.close()
-        except Exception:
-            pass
-        try:
-            console.close()
-        except Exception:
-            pass
+        for obj in (output, console):
+            try:
+                obj.close()
+            except Exception:
+                pass
         return result
 
     def get_server_list_text(self, filtered_servers, selected_index, live_info, loading, current_tab, output_size, search_text=""):
@@ -172,19 +159,15 @@ class ViewRenderer:
         if not filtered_servers and not loading:
             if current_tab == "GLOBAL" and search_text:
                 return HTML(f"<ansired>No servers found matching: '{search_text}'</ansired>")
-            elif current_tab == "GLOBAL":
-                return HTML("<ansiyellow>Type server name...</ansiyellow>")
-            return "No servers found."
+            return HTML("<ansiyellow>Type server name...</ansiyellow>") if current_tab == "GLOBAL" else "No servers found."
 
         cols, rows = output_size
-        width = cols - 46
-        if width < 40: width = 80
+        width = max(cols - 46, 80)
         return self._render_server_table(filtered_servers, selected_index, live_info, width, rows)
 
     def get_pane_server_list_text(self, filtered_servers, selected_index, live_info, output_size, is_active_pane=False):
         if not filtered_servers:
             return "No servers found."
         cols, rows = output_size
-        width = cols
-        if width < 40: width = 80
+        width = max(cols, 80)
         return self._render_server_table(filtered_servers, selected_index, live_info, width, rows, is_active_pane)
