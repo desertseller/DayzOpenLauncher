@@ -1,4 +1,5 @@
 import time
+import threading
 from config import Config
 from server_browser import ServerBrowser
 
@@ -16,6 +17,7 @@ class DataManager:
         self.last_search_text = ""
         self.last_fetch_ts = 0.0
         self.loading = True
+        self.live_info_lock = threading.Lock()
 
 #helpers
 
@@ -32,6 +34,9 @@ class DataManager:
                 'data': self._build_lookup_cache()
             }
         global_lookup = self._lookup_cache['data']
+
+        with self.live_info_lock:
+            live_info_local = dict(self.live_info)
 
         for server in source:
             ip = server.get('ip')
@@ -52,8 +57,8 @@ class DataManager:
                     'mods': live.get('mods', [])
                 })
 
-            if key_tuple in self.live_info:
-                live = self.live_info[key_tuple]
+            if key_tuple in live_info_local:
+                live = live_info_local[key_tuple]
                 for field in ['players', 'max_players', 'queue', 'time', 'map']:
                     val = live.get(field)
                     if val is not None and val != '?':
@@ -75,10 +80,11 @@ class DataManager:
 
     def _get_player_count(self, server):
         key = (server.get('ip'), server.get('port'))
-        if key in self.live_info:
-            p = self.live_info[key].get('players', 0)
-        else:
-            p = server.get('players', 0)
+        with self.live_info_lock:
+            if key in self.live_info:
+                p = self.live_info[key].get('players', 0)
+            else:
+                p = server.get('players', 0)
         try:
             return int(p)
         except (ValueError, TypeError):
@@ -86,7 +92,8 @@ class DataManager:
 
     def fetch_data(self, search_text=None, force=False):
         self.loading = True
-        self.live_info.clear()
+        with self.live_info_lock:
+            self.live_info.clear()
         try:
             if search_text and len(search_text) >= 2:
                 result = self.browser.fetch_global_servers(search_text=search_text, force=force)
@@ -94,7 +101,7 @@ class DataManager:
                 self.last_search_text = search_text
             else:
                 result = self.browser.fetch_global_servers(force=force)
-                if result:
+                if result is not None:
                     self.all_servers = result
                     self.last_good_servers = result
                     self.last_fetch_ts = time.time()

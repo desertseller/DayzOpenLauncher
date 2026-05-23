@@ -71,11 +71,23 @@ class ServerBrowser:
         endpoint = raw.get('endpoint', {})
         name = raw.get('name', 'Unknown Server')
         ip = endpoint.get('ip', '0.0.0.0')
-        g_port = int(raw.get('gamePort', 2302))
-        q_port = int(endpoint.get('port', g_port + QUERY_PORT_OFFSET))
+        try:
+            g_port = int(raw.get('gamePort', 2302))
+        except (ValueError, TypeError):
+            g_port = 2302
+        try:
+            q_port = int(endpoint.get('port', g_port + QUERY_PORT_OFFSET))
+        except (ValueError, TypeError):
+            q_port = g_port + QUERY_PORT_OFFSET
         map_name = raw.get('map', 'Unknown')
-        players = int(raw.get('players', 0))
-        max_players = int(raw.get('maxPlayers', 0))
+        try:
+            players = int(raw.get('players', 0))
+        except (ValueError, TypeError):
+            players = 0
+        try:
+            max_players = int(raw.get('maxPlayers', 0))
+        except (ValueError, TypeError):
+            max_players = 0
 
         mods = []
         for m in raw.get('mods', []):

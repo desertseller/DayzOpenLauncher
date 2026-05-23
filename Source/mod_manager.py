@@ -52,7 +52,7 @@ class ModManager:
         output, console = self._render_console(38)
 
         if server:
-            map_name = live_info_entry.get('map') if live_info_entry else server.get('map', 'Unknown')
+            map_name = (live_info_entry.get('map') if live_info_entry else None) or server.get('map', 'Unknown')
             console.print(f"[bold cyan]{server.get('name', 'Unknown')[:35]}[/bold cyan]")
             console.print(f"IP: {server.get('ip')}:{server.get('port')}")
             console.print(f"Map: {map_name}")
@@ -114,7 +114,6 @@ class ModManager:
             mods = self._collect_installed_mods(dayz_path)
 
             if not mods:
-                self._close_resources(output, console)
                 workshop = os.path.join(dayz_path, "!Workshop")
                 return f"No mods found.\nChecked:\n- {dayz_path}\n- {workshop}\n\n:("
 
@@ -122,8 +121,9 @@ class ModManager:
             self.cached_installed_mods = result
             return result
         except Exception as e:
-            self._close_resources(output, console)
             return f"Error reading mods: {e}"
+        finally:
+            self._close_resources(output, console)
 
     def _collect_installed_mods(self, dayz_path):
         mods = []

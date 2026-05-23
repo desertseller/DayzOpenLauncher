@@ -103,7 +103,8 @@ class DayZLauncherTUI:
         self.live_updater = LiveUpdater(
             self.data_manager.browser,
             self.data_manager.live_info,
-            lambda: self.app.invalidate() if hasattr(self, 'app') else None
+            lambda: self.app.invalidate() if hasattr(self, 'app') else None,
+            self.data_manager.live_info_lock
         )
 
         self.ui_layout = UILayout(self, self.view_renderer)

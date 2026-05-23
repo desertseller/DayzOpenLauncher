@@ -35,10 +35,9 @@ def launch_dayz(dayz_path, ip, port, profile_name, mods=None):
         cmd.append(f"-mod={mod_str}")
 
     try:
-        # 0x00000008: DETACHED_PROCESS
-        # 0x00000200: CREATE_NEW_PROCESS_GROUP
         flags = 0x00000008 | 0x00000200
-        subprocess.Popen(cmd, cwd=dayz_path, creationflags=flags, close_fds=True) 
+        proc = subprocess.Popen(cmd, cwd=dayz_path, creationflags=flags, close_fds=True)
+        proc.poll()
         return True
     except Exception as e:
         return False

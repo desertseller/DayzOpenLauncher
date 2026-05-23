@@ -113,7 +113,8 @@ class ServerActions:
             if time.time() - start_wait > 600:
                 if not self.cancel_requested:
                     on_start("Download timeout! Check Steam.")
-                break
+                on_end(False, "Download timeout! Check Steam.")
+                return False
 
             still_missing = []
             for mid in missing:
