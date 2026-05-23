@@ -29,54 +29,60 @@ class ServerBrowser:
         else:
             try:
                 response = self.session.get(self.api_url, timeout=DEFAULT_TIMEOUT * 3)
-                if response.status_code == 200:
-                    data = response.json()
-                    raw_list = data.get('result', data.get('dayz', []))
-                    
-                    if not raw_list and isinstance(data, list):
-                         raw_list = data
-                    
-                    parsed_servers = []
-                    for s in raw_list:
-                         endpoint = s.get('endpoint', {})
-                         name = s.get('name', 'Unknown Server')
-                         ip = endpoint.get('ip', '0.0.0.0')
-                         g_port = int(s.get('gamePort', 2302))
-                         q_port = int(endpoint.get('port', g_port + QUERY_PORT_OFFSET)) 
-                         map_name = s.get('map', 'Unknown')
-                         players = int(s.get('players', 0))
-                         max_players = int(s.get('maxPlayers', 0))
-                         
-                         mods = []
-                         raw_mods = s.get('mods', [])
-                         for m in raw_mods:
-                              mname = m.get('name', 'Unknown')
-                              mid = m.get('steamWorkshopId') or m.get('workshopId') or m.get('steamId')
-                              if mid:
-                                   mods.append({
-                                        "id": str(mid),
-                                        "name": mname,
-                                        "steamWorkshopId": str(mid)
-                                   })
-                         
-                         parsed_servers.append({
-                            "name": name,
-                            "ip": ip,
-                            "port": g_port,
-                            "query_port": q_port,
-                            "map": map_name,
-                            "players": players,
-                            "max_players": max_players,
-                            "time": s.get('time', '?'),
-                            "queue": 0,
-                            "mods": mods,
-                            "status": "Online"
-                        })
-                    
-                    self.cached_full_list = parsed_servers
-                    servers = parsed_servers
-                else:
-                    return []
+                try:
+                    if response.status_code == 200:
+                        data = response.json()
+                        raw_list = data.get('result', data.get('dayz', []))
+                        
+                        if not raw_list and isinstance(data, list):
+                             raw_list = data
+                        
+                        parsed_servers = []
+                        for s in raw_list:
+                             endpoint = s.get('endpoint', {})
+                             name = s.get('name', 'Unknown Server')
+                             ip = endpoint.get('ip', '0.0.0.0')
+                             g_port = int(s.get('gamePort', 2302))
+                             q_port = int(endpoint.get('port', g_port + QUERY_PORT_OFFSET)) 
+                             map_name = s.get('map', 'Unknown')
+                             players = int(s.get('players', 0))
+                             max_players = int(s.get('maxPlayers', 0))
+                             
+                             mods = []
+                             raw_mods = s.get('mods', [])
+                             for m in raw_mods:
+                                  mname = m.get('name', 'Unknown')
+                                  mid = m.get('steamWorkshopId') or m.get('workshopId') or m.get('steamId')
+                                  if mid:
+                                       mods.append({
+                                            "id": str(mid),
+                                            "name": mname,
+                                            "steamWorkshopId": str(mid)
+                                       })
+                             
+                             parsed_servers.append({
+                                "name": name,
+                                "ip": ip,
+                                "port": g_port,
+                                "query_port": q_port,
+                                "map": map_name,
+                                "players": players,
+                                "max_players": max_players,
+                                "time": s.get('time', '?'),
+                                "queue": 0,
+                                "mods": mods,
+                                "status": "Online"
+                            })
+                        
+                        self.cached_full_list = parsed_servers
+                        servers = parsed_servers
+                    else:
+                        return []
+                finally:
+                    try:
+                        response.close()
+                    except Exception:
+                        pass
             except Exception as e:
                 print(f"Error fetching DZSA servers: {e}")
                 return []

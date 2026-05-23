@@ -151,7 +151,16 @@ class ViewRenderer:
         output = io.StringIO()
         console = Console(file=output, force_terminal=True, color_system="standard", width=width)
         console.print(table)
-        return ANSI(output.getvalue())
+        result = ANSI(output.getvalue())
+        try:
+            output.close()
+        except Exception:
+            pass
+        try:
+            console.close()
+        except Exception:
+            pass
+        return result
 
     def get_server_list_text(self, filtered_servers, selected_index, live_info, loading, current_tab, output_size, search_text=""):
         if loading and current_tab == "GLOBAL":

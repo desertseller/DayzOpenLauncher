@@ -337,7 +337,7 @@ class DayZLauncherTUI:
                 except (KeyboardInterrupt, EOFError):
                     pass
         except Exception as e:
-            with open("crash_log.txt", "w") as f:
+            with open("crash_log.txt", "w", encoding="utf-8") as f:
                 import traceback
                 traceback.print_exc(file=f)
         finally:
@@ -345,6 +345,11 @@ class DayZLauncherTUI:
 
     def _cleanup(self):
         self.running = False
+        try:
+            if hasattr(self, 'search_timer') and self.search_timer:
+                self.search_timer.cancel()
+        except:
+            pass
         try:
             if hasattr(self, 'live_updater'):
                 self.live_updater.stop()

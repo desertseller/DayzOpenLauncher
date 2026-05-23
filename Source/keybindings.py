@@ -233,7 +233,7 @@ class KeyBinder:
                     server = servers[idx]
                     self.tui.join_server_wrapper(server)
             except Exception as e:
-                with open("key_error.log", "a") as f:
+                with open("key_error.log", "a", encoding="utf-8") as f:
                     f.write(f"Join error: {e}\n")
 
         @kb.add('f7')

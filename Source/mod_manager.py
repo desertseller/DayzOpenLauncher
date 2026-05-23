@@ -72,7 +72,16 @@ class ModManager:
         else:
             console.print("[dim]Vanilla / No mods listed[/dim]")
         
-        return ANSI(output.getvalue())
+        result = ANSI(output.getvalue())
+        try:
+            output.close()
+        except Exception:
+            pass
+        try:
+            console.close()
+        except Exception:
+            pass
+        return result
 
     def get_installed_mods_text(self, width=80):
         if self.cached_installed_mods:
@@ -113,6 +122,14 @@ class ModManager:
                 pass
 
             if not mods:
+                try:
+                    output.close()
+                except Exception:
+                    pass
+                try:
+                    console.close()
+                except Exception:
+                    pass
                 return f"No mods found.\nChecked:\n- {dayz_path}\n- {workshop_path}\n\n:("
             
             unique_names = sorted(list(set(m[0] for m in mods)), key=lambda x: x.lower())
@@ -145,11 +162,28 @@ class ModManager:
                 while len(row) < cols: row.append("")
                 table.add_row(*row)
 
+            try:
+                output.close()
+            except Exception:
+                pass
+            try:
+                console.close()
+            except Exception:
+                pass
             output = io.StringIO()
             if width < 80: width = 80
             console = Console(file=output, force_terminal=True, width=width)
             console.print(table)
-            self.cached_installed_mods = ANSI(output.getvalue())
-            return self.cached_installed_mods
+            result = ANSI(output.getvalue())
+            self.cached_installed_mods = result
+            try:
+                output.close()
+            except Exception:
+                pass
+            try:
+                console.close()
+            except Exception:
+                pass
+            return result
         except Exception as e:
             return f"Error reading mods: {e}"
