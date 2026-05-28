@@ -230,6 +230,7 @@ class DayZLauncherTUI:
 
     def switch_tab(self, tab_name):
         self.current_tab = tab_name
+        self.search_filter.text = ""
         self.selected_index = 0
         self.recent_selected_index = 0
         self.favorites_selected_index = 0
