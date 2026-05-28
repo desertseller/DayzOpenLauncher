@@ -14,7 +14,7 @@ class UpdateChecker:
                 time.sleep(3)
 
                 response = requests.get(
-                    "https://api.github.com/repos/PawelKawka/DayzOpenLauncher/releases/latest",
+                    "https://api.github.com/repos/desertseller/DayzOpenLauncher/releases/latest",
                     timeout=5
                 )
                 try:
