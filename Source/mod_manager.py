@@ -106,7 +106,7 @@ class ModManager:
 
         dayz_path = self.config.get("dayz_path")
         if not dayz_path or not os.path.exists(dayz_path):
-            return "DayZ path not set or invalid. Check Settings (F4)."
+            return "DayZ path not set or invalid. Check Settings (F3)."
 
         output, console = self._render_console(width)
 
