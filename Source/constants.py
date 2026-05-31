@@ -1,5 +1,5 @@
-VERSION = "1.2.5"
-BUILD_INFO = "310520262"
+VERSION = "1.2.6"
+BUILD_INFO = "310520263"
 APP_NAME = "DayzOpenLauncher"
 DZSA_API_URL = "https://dayzsalauncher.com/api/v2/launcher/servers/dayz"
 CONFIG_FILE_NAME = "config.json"
