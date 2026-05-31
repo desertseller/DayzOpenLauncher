@@ -8,3 +8,4 @@ __pycache__/
 *.spec
 TESTING/
 preview/
+*.exe
