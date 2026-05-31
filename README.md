@@ -13,7 +13,7 @@ A simple Python TUI launcher for Windows Terminal that allows you to browse DayZ
 
 ![DayzOpenLauncher Screenshot](assets/screen.png)
 
-## Installation
+## How to install 
 
 ### Requirements
 - Windows 11 / 10
