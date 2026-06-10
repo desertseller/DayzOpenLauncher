@@ -1,128 +1,45 @@
-import platform
 from prompt_toolkit.layout import Layout, HSplit, VSplit, Window, FormattedTextControl, FloatContainer, Float, DynamicContainer, ConditionalContainer
 from prompt_toolkit.layout.dimension import Dimension
-from prompt_toolkit.widgets import Frame, TextArea, Label, Button, Shadow
-from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.widgets import Frame, Label, Button, Shadow
 from prompt_toolkit.filters import Condition
-from constants import APP_NAME, VERSION, DEFAULT_PROFILE_NAME
+from constants import APP_NAME, VERSION
+
 
 class UILayout:
-    def __init__(self, tui, view_renderer):
+    def __init__(self, tui, view_renderer, tabs):
         self.tui = tui
         self.view_renderer = view_renderer
+        self.tabs = tabs
 
     def init_widgets(self):
         tui = self.tui
-        
-        tui.search_filter = TextArea(height=1, prompt=" Search: ", multiline=False)
-        tui.search_filter.buffer.on_text_changed += tui._on_filter_change
-        
-        search_kb = KeyBindings()
-        @search_kb.add('down')
-        @search_kb.add('up')
-        def _focus_list_from_search(event):
-            if tui.data_manager.filtered_servers:
-                event.app.layout.focus(tui.content_control)
-        tui.search_filter.control.key_bindings = search_kb
 
-        tui.nick_input = TextArea(
-            height=1, multiline=False,
-            text=str(tui.data_manager.config.get("profile_name", DEFAULT_PROFILE_NAME) or "")
-        )
-        tui.nick_input.buffer.on_text_changed += lambda _: tui.data_manager.config.set("profile_name", tui.nick_input.text)
-        
-        tui.dayz_path_input = TextArea(
-            height=1, multiline=False,
-            text=str(tui.data_manager.config.get("dayz_path", "") or "")
-        )
-        tui.dayz_path_input.buffer.on_text_changed += lambda _: tui.data_manager.config.set("dayz_path", tui.dayz_path_input.text)
-
-        mods_kb = KeyBindings()
-        @mods_kb.add('right')
-        def _mods_page_next(event):
-            tui.mod_manager.mods_page += 1
-            event.app.invalidate()
-        @mods_kb.add('left')
-        def _mods_page_prev(event):
-            if tui.mod_manager.mods_page > 0:
-                tui.mod_manager.mods_page -= 1
-            event.app.invalidate()
-
-        tui.installed_mods_control = FormattedTextControl(
-            text=lambda: tui.mod_manager.get_installed_mods_text(
-                width=tui.app.renderer.output.get_size().columns if hasattr(tui, 'app') else 80
-            ),
-            focusable=True,
-            key_bindings=mods_kb
-        )
+        for tab in self.tabs.values():
+            tab.init_widgets()
 
         tui.launch_ok_btn = Button("OK", handler=tui._close_launch)
 
-        tui.content_control = FormattedTextControl(
-            text=tui.get_server_list_text,
-            focusable=True
-        )
-        tui.content_window = Window(content=tui.content_control, cursorline=False)
-
-        tui.recent_control = FormattedTextControl(
-            text=tui.get_recent_list_text,
-            focusable=True
-        )
-        tui.recent_window = Window(content=tui.recent_control, cursorline=False)
-
-        tui.favorites_control = FormattedTextControl(
-            text=tui.get_favorites_list_text,
-            focusable=True
-        )
-        tui.favorites_window = Window(content=tui.favorites_control, cursorline=False)
-
-        tui.mod_control = FormattedTextControl(text=tui.get_mod_list_text)
-
     def init_layout(self):
         tui = self.tui
-        
-        main_content = VSplit([
-            Frame(tui.content_window, title="Server List"),
-            Frame(Window(content=tui.mod_control), title="Server Details", width=40),
-        ])
 
-        favrecent_content = VSplit([
-            Frame(tui.recent_window, title="Recent", width=Dimension(weight=1)),
-            Frame(tui.favorites_window, title="Favorites", width=Dimension(weight=1)),
-        ])
+        for tab in self.tabs.values():
+            tab.init_layout()
 
-        mods_content = Frame(
-            Window(content=tui.installed_mods_control),
-            title="Mods"
-        )
-
-        settings_content = self.view_renderer.get_settings_view(
-            tui.nick_input,
-            tui.dayz_path_input
-        )
+        tab_global = self.tabs["GLOBAL"]
 
         def get_body():
             if tui.current_tab == "SETTINGS":
-                return settings_content
+                return self.tabs["SETTINGS"].get_body()
             elif tui.current_tab == "MODS":
-                return mods_content
+                return self.tabs["MODS"].get_body()
             elif tui.current_tab == "FAVRECENT":
-                return favrecent_content
-            return main_content
-
-        search_frame = ConditionalContainer(
-            content=Frame(tui.search_filter, title=f"{APP_NAME}"),
-            filter=Condition(lambda: tui.current_tab == "GLOBAL")
-        )
-        title_frame = ConditionalContainer(
-            content=Frame(Window(height=1), title=f"{APP_NAME}"),
-            filter=Condition(lambda: tui.current_tab != "GLOBAL")
-        )
+                return self.tabs["FAVRECENT"].get_body()
+            return tab_global.get_body()
 
         tui.root_container = FloatContainer(
             content=HSplit([
-                search_frame,
-                title_frame,
+                tab_global.search_frame,
+                tab_global.title_frame,
                 Window(content=FormattedTextControl(text=lambda: self.view_renderer.get_tabs_text(tui.current_tab, tui.tabs)), height=1),
                 DynamicContainer(get_body),
                 Window(content=FormattedTextControl(text=lambda: self.view_renderer.get_footer_text(tui.latest_update_info)), height=1),

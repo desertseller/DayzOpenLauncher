@@ -41,6 +41,7 @@ from views import ViewRenderer
 from keybindings import KeyBinder
 from constants import VERSION, APP_NAME, DEFAULT_PROFILE_NAME
 from ui_layout import UILayout
+from Tabs import GlobalTab, FavrecentTab, SettingsTab, ModsTab
 
 if platform.system() == "Windows":
     try:
@@ -73,6 +74,18 @@ class DayZLauncherTUI:
         self.server_actions = ServerActions(self.data_manager.config)
         self.view_renderer = ViewRenderer(self.data_manager.config, self)
         self._ensure_dayz_path()
+
+        self.tab_global = GlobalTab(self)
+        self.tab_favrecent = FavrecentTab(self)
+        self.tab_settings = SettingsTab(self)
+        self.tab_mods = ModsTab(self)
+
+        self.tab_map = {
+            "GLOBAL": self.tab_global,
+            "FAVRECENT": self.tab_favrecent,
+            "SETTINGS": self.tab_settings,
+            "MODS": self.tab_mods,
+        }
 
     def _ensure_dayz_path(self):
         current_path = self.data_manager.config.get("dayz_path")
@@ -113,16 +126,17 @@ class DayZLauncherTUI:
             self.data_manager.live_info_lock
         )
 
-        self.ui_layout = UILayout(self, self.view_renderer)
+        self.ui_layout = UILayout(self, self.view_renderer, self.tab_map)
         self.ui_layout.init_widgets()
 
         self.key_binder = KeyBinder(self)
         self.kb = self.key_binder.get_global_bindings()
 
-        list_kb = self.key_binder.get_list_bindings()
-        self.content_control.key_bindings = list_kb
-        self.recent_control.key_bindings = list_kb
-        self.favorites_control.key_bindings = list_kb
+        self.content_control.key_bindings = self.tab_global.get_list_keybindings()
+
+        favrecent_kb = self.tab_favrecent.get_list_keybindings()
+        self.recent_control.key_bindings = favrecent_kb
+        self.favorites_control.key_bindings = favrecent_kb
 
         self.root_container = self.ui_layout.init_layout()
 
@@ -255,15 +269,14 @@ class DayZLauncherTUI:
 
     def _focus_tab_control(self, tab_name):
         focus_map = {
-            "SETTINGS": self.nick_input,
-            "MODS": self.installed_mods_control,
+            "SETTINGS": self.tab_settings.get_focus_control(),
+            "MODS": self.tab_mods.get_focus_control(),
         }
         target = focus_map.get(tab_name)
         if tab_name == "FAVRECENT":
-            target = (self.recent_control if self.favrecent_pane == "recent"
-                      else self.favorites_control)
+            target = self.tab_favrecent.get_focus_control()
         if target is None:
-            target = self.content_control
+            target = self.tab_global.get_focus_control()
 
         try:
             self.app.layout.focus(target)
@@ -295,31 +308,6 @@ class DayZLauncherTUI:
 
         self.server_actions.join_server(server, on_start, on_end)
 
-    def get_server_list_text(self):
-        if not hasattr(self, 'app'):
-            return ""
-        size = self.app.renderer.output.get_size()
-        return self.view_renderer.get_server_list_text(
-            self.data_manager.filtered_servers,
-            self.selected_index,
-            self.data_manager.live_info,
-            self.data_manager.loading,
-            self.current_tab,
-            (size.columns, size.rows),
-            self.search_filter.text
-        )
-
-    def get_mod_list_text(self):
-        server = None
-        if self.data_manager.filtered_servers and self.selected_index < len(self.data_manager.filtered_servers):
-            server = self.data_manager.filtered_servers[self.selected_index]
-
-        live = None
-        if server:
-            live = self.data_manager.live_info.get((server.get('ip'), server.get('port')))
-
-        return self.mod_manager.get_mod_list_text(server, live)
-
     @property
     def active_pane_servers(self):
         return (self.data_manager.favrecent_recent if self.favrecent_pane == "recent"
@@ -335,33 +323,6 @@ class DayZLauncherTUI:
             self.recent_selected_index = value
         else:
             self.favorites_selected_index = value
-
-    def _get_pane_size(self):
-        if not hasattr(self, 'app'):
-            return (80, 24)
-        size = self.app.renderer.output.get_size()
-        pane_width = max(40, size.columns // 2 - 4)
-        return pane_width, size.rows
-
-    def get_recent_list_text(self):
-        pane_width, rows = self._get_pane_size()
-        return self.view_renderer.get_pane_server_list_text(
-            self.data_manager.favrecent_recent,
-            self.recent_selected_index,
-            self.data_manager.live_info,
-            (pane_width, rows),
-            is_active_pane=(self.favrecent_pane == "recent")
-        )
-
-    def get_favorites_list_text(self):
-        pane_width, rows = self._get_pane_size()
-        return self.view_renderer.get_pane_server_list_text(
-            self.data_manager.favrecent_favorites,
-            self.favorites_selected_index,
-            self.data_manager.live_info,
-            (pane_width, rows),
-            is_active_pane=(self.favrecent_pane == "favorites")
-        )
 
     # ── App lifecycle ────────────────────────────────────────────
 
