@@ -64,13 +64,12 @@ class ViewRenderer:
 
     def _render_server_table(self, filtered_servers, selected_index, live_info, width, rows, is_active_pane=True):
         table = Table(box=box.MINIMAL, expand=True, show_header=True, header_style="bold cyan")
-        table.add_column("SEL", width=3, justify="center")
         table.add_column("SERVER NAME", no_wrap=True)
         table.add_column("PLAYERS", width=10, justify="right")
         table.add_column("QUEUE", width=8, justify="right")
         table.add_column("MAP", width=12)
         table.add_column("TIME", width=8)
-        table.add_column("PING", width=6, justify="right")
+        table.add_column("PING", width=8, justify="right")
 
         height = max(rows - 10, 20)
         start = max(0, selected_index - (height // 2))
@@ -98,8 +97,7 @@ class ViewRenderer:
                 name_display = f"* {name_display}"
 
             table.add_row(
-                ">" if (is_sel and is_active_pane) else " ",
-                name_display[:(width - 56)],
+                name_display[:(width - 50)],
                 f"{live.get('players', '?') if live else server.get('players', '?')}/"
                 f"{live.get('max_players', '?') if live else server.get('max_players', '?')}",
                 q_display,
