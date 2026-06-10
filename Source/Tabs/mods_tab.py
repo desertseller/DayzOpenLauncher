@@ -35,7 +35,7 @@ class ModsTab:
     def init_layout(self):
         tui = self.tui
         self.mods_content = Frame(
-            Window(content=tui.installed_mods_control),
+            Window(content=tui.installed_mods_control, always_hide_cursor=True),
             title="Mods"
         )
 

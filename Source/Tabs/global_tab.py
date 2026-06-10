@@ -24,8 +24,7 @@ class GlobalTab:
         @search_kb.add('down')
         @search_kb.add('up')
         def _focus_list_from_search(event):
-            if tui.data_manager.filtered_servers:
-                event.app.layout.focus(tui.content_control)
+            event.app.layout.focus(tui.content_control)
 
         tui.search_filter.control.key_bindings = search_kb
 
@@ -33,7 +32,7 @@ class GlobalTab:
             text=self.get_server_list_text,
             focusable=True
         )
-        tui.content_window = Window(content=tui.content_control, cursorline=False)
+        tui.content_window = Window(content=tui.content_control, cursorline=False, always_hide_cursor=True)
 
         tui.mod_control = FormattedTextControl(text=self.get_mod_list_text)
 
@@ -42,7 +41,7 @@ class GlobalTab:
 
         self.main_content = VSplit([
             Frame(tui.content_window, title="Server List", width=Dimension(weight=1)),
-            Frame(Window(content=tui.mod_control), title="Server Details", width=40),
+            Frame(Window(content=tui.mod_control, always_hide_cursor=True), title="Server Details", width=40),
         ])
 
         self.search_frame = ConditionalContainer(

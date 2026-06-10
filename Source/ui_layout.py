@@ -40,9 +40,9 @@ class UILayout:
             content=HSplit([
                 tab_global.search_frame,
                 tab_global.title_frame,
-                Window(content=FormattedTextControl(text=lambda: self.view_renderer.get_tabs_text(tui.current_tab, tui.tabs)), height=1),
+                Window(content=FormattedTextControl(text=lambda: self.view_renderer.get_tabs_text(tui.current_tab, tui.tabs)), height=1, always_hide_cursor=True),
                 DynamicContainer(get_body),
-                Window(content=FormattedTextControl(text=lambda: self.view_renderer.get_footer_text(tui.latest_update_info)), height=1),
+                Window(content=FormattedTextControl(text=lambda: self.view_renderer.get_footer_text(tui.latest_update_info)), height=1, always_hide_cursor=True),
             ]),
             floats=[
                 Float(content=ConditionalContainer(

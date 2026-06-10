@@ -17,13 +17,13 @@ class FavrecentTab:
             text=self.get_recent_list_text,
             focusable=True
         )
-        tui.recent_window = Window(content=tui.recent_control, cursorline=False)
+        tui.recent_window = Window(content=tui.recent_control, cursorline=False, always_hide_cursor=True)
 
         tui.favorites_control = FormattedTextControl(
             text=self.get_favorites_list_text,
             focusable=True
         )
-        tui.favorites_window = Window(content=tui.favorites_control, cursorline=False)
+        tui.favorites_window = Window(content=tui.favorites_control, cursorline=False, always_hide_cursor=True)
 
     def init_layout(self):
         tui = self.tui
