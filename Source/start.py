@@ -21,7 +21,13 @@ try:
     from prompt_toolkit.key_binding import KeyBindings
     from prompt_toolkit.filters import Condition
     from prompt_toolkit.widgets import Frame, TextArea, Label, Button, Shadow, RadioList
+    from prompt_toolkit.widgets.base import Border
     from prompt_toolkit.patch_stdout import patch_stdout
+
+    Border.TOP_LEFT = "\u256d"
+    Border.TOP_RIGHT = "\u256e"
+    Border.BOTTOM_LEFT = "\u2570"
+    Border.BOTTOM_RIGHT = "\u256f"
 except ImportError as e:
     print(f"Error: Missing libraries or import error: {e}")
     traceback.print_exc()
