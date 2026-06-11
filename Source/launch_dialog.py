@@ -69,11 +69,9 @@ class LaunchDialog:
         return "[bold cyan]DayZ Launcher[/bold cyan]", "cyan"
 
     def _hint(self, msg):
-        if self.tui._esc_press_time > 0:
-            return "Press ESC again to cancel"
         if "Error" in msg or "ERROR" in msg or "Failed" in msg:
-            return "ESC / ENTER to close"
-        return "Press ESC twice to cancel"
+            return "Ctrl+Q / ENTER to close"
+        return "Ctrl+Q to cancel"
 
     @staticmethod
     def _line_style(line):

@@ -137,7 +137,7 @@ class ServerActions:
                 self._open_workshop_page(currently_opening)
 
             on_start(
-                f"MOD DOWNLOAD IN PROGRESS... [ESC to Cancel]\n"
+                f"MOD DOWNLOAD IN PROGRESS...\n"
                 f"Remaining: {len(still_missing)} mods\n"
                 f"Currently waiting for ID: {currently_opening}"
             )

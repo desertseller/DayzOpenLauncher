@@ -114,7 +114,6 @@ class DayZLauncherTUI:
         self.launch_message = ""
         self.latest_update_info = None
         self.run_update_on_exit = False
-        self._esc_press_time = 0.0
 
     # TAB STATE ===============================[
 
@@ -233,22 +232,11 @@ class DayZLauncherTUI:
 
 
     def _close_launch(self):
-        msg = self.launch_message or ""
-        if "Error" in msg or "ERROR" in msg or "Failed" in msg:
-            self._do_close_launch()
-            return
-
-        now = time.time()
-        if self._esc_press_time > 0 and now - self._esc_press_time < 1.5:
-            self.server_actions.cancel_launch()
-            self._do_close_launch()
-        else:
-            self._esc_press_time = now
-            self.app.invalidate()
+        self.server_actions.cancel_launch()
+        self._do_close_launch()
 
     def _do_close_launch(self):
         self.show_launch_dialog = False
-        self._esc_press_time = 0.0
         try:
             self.app.layout.focus(self.content_control)
         except Exception:
@@ -337,7 +325,6 @@ class DayZLauncherTUI:
     def join_server_wrapper(self, server):
         def on_start(msg):
             self.launch_message = msg
-            self._esc_press_time = 0.0
             self.show_launch_dialog = True
             self.app.invalidate()
 

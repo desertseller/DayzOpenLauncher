@@ -33,7 +33,7 @@ class KeyBinder:
         def _tab_focus(event):
             self._handle_tab(event)
 
-        @kb.add('escape')
+        @kb.add('c-q')
         def _close_dialog(event):
             if tui.show_launch_dialog:
                 tui._close_launch()
