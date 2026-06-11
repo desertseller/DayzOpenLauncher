@@ -1,8 +1,7 @@
-from prompt_toolkit.layout import Layout, HSplit, VSplit, Window, FormattedTextControl, FloatContainer, Float, DynamicContainer, ConditionalContainer
+from prompt_toolkit.layout import Layout, HSplit, Window, FormattedTextControl, FloatContainer, DynamicContainer
 from prompt_toolkit.layout.dimension import Dimension
-from prompt_toolkit.widgets import Frame, Label, Button, Shadow
-from prompt_toolkit.filters import Condition
 from constants import APP_NAME, VERSION
+from launch_dialog import LaunchDialog
 
 
 class UILayout:
@@ -10,14 +9,11 @@ class UILayout:
         self.tui = tui
         self.view_renderer = view_renderer
         self.tabs = tabs
+        self.launch_dialog = LaunchDialog(tui)
 
     def init_widgets(self):
-        tui = self.tui
-
         for tab in self.tabs.values():
             tab.init_widgets()
-
-        tui.launch_ok_btn = Button("OK", handler=tui._close_launch)
 
     def init_layout(self):
         tui = self.tui
@@ -45,22 +41,8 @@ class UILayout:
                 Window(content=FormattedTextControl(text=lambda: self.view_renderer.get_footer_text(tui.latest_update_info)), height=1, always_hide_cursor=True),
             ]),
             floats=[
-                Float(content=ConditionalContainer(
-                    content=self.get_launch_dialog(),
-                    filter=Condition(lambda: tui.show_launch_dialog)
-                ))
+                self.launch_dialog.get_container()
             ]
         )
 
         return tui.root_container
-
-    def get_launch_dialog(self):
-        return Shadow(
-            body=Frame(
-                HSplit([
-                    Label(text=lambda: self.tui.launch_message),
-                ], padding=1),
-                title="Launching Game",
-                width=50,
-            )
-        )

@@ -40,6 +40,13 @@ class KeyBinder:
                 return
             router.focus_default_control()
 
+        @kb.add('enter')
+        def _enter_close_error(event):
+            if tui.show_launch_dialog:
+                msg = tui.launch_message or ""
+                if "Error" in msg or "ERROR" in msg or "Failed" in msg:
+                    tui._do_close_launch()
+
         @kb.add('f8')
         def _refresh(event):
             tui.refresh_data()
