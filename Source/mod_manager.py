@@ -66,6 +66,17 @@ class ModManager:
             console.print(f"Ping:    [{ping_style}]{ping} ms[/{ping_style}]")
             console.print(f"Queue:   [orange1]{live_info_entry.get('queue')}[/orange1]")
             console.print(f"Time:    {live_info_entry.get('time')}")
+        elif server:
+            console.print("[bold yellow]LIVE INFO[/bold yellow]")
+            players = server.get('players', '0')
+            max_players = server.get('max_players', '0')
+            ping_style = self._ping_style('?')
+            console.print(f"Players: {players}/{max_players}")
+            console.print(f"Ping:    [{ping_style}]? ms[/{ping_style}]")
+            queue = server.get('queue', '0')
+            console.print(f"Queue:   [orange1]{queue}[/orange1]")
+            time_val = server.get('time', '?')
+            console.print(f"Time:    {time_val}")
         else:
             console.print("[dim]No live data available[/dim]")
 
