@@ -3,11 +3,15 @@ from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.widgets import Frame
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.filters import Condition
+from focus_router import scroll_list
 
 
 class FavrecentTab:
     def __init__(self, tui):
         self.tui = tui
+        self.recent_selected_index = 0
+        self.favorites_selected_index = 0
+        self.favrecent_pane = "recent"
         self.favrecent_content = None
 
     def init_widgets(self):
@@ -41,10 +45,10 @@ class FavrecentTab:
         pane_width, rows = self._get_pane_size()
         return tui.view_renderer.get_pane_server_list_text(
             tui.data_manager.favrecent_recent,
-            tui.recent_selected_index,
+            self.recent_selected_index,
             tui.data_manager.live_info,
             (pane_width, rows),
-            is_active_pane=(tui.favrecent_pane == "recent")
+            is_active_pane=(self.favrecent_pane == "recent")
         )
 
     def get_favorites_list_text(self):
@@ -52,10 +56,10 @@ class FavrecentTab:
         pane_width, rows = self._get_pane_size()
         return tui.view_renderer.get_pane_server_list_text(
             tui.data_manager.favrecent_favorites,
-            tui.favorites_selected_index,
+            self.favorites_selected_index,
             tui.data_manager.live_info,
             (pane_width, rows),
-            is_active_pane=(tui.favrecent_pane == "favorites")
+            is_active_pane=(self.favrecent_pane == "favorites")
         )
 
     def _get_pane_size(self):
@@ -72,13 +76,13 @@ class FavrecentTab:
 
         @kb.add('left', filter=Condition(lambda: tui.current_tab == "FAVRECENT"))
         def _pane_left(event):
-            tui.favrecent_pane = "recent"
+            self.favrecent_pane = "recent"
             tui.app.layout.focus(tui.recent_control)
             event.app.invalidate()
 
         @kb.add('right', filter=Condition(lambda: tui.current_tab == "FAVRECENT"))
         def _pane_right(event):
-            tui.favrecent_pane = "favorites"
+            self.favrecent_pane = "favorites"
             tui.app.layout.focus(tui.favorites_control)
             event.app.invalidate()
 
@@ -129,11 +133,8 @@ class FavrecentTab:
         tui = self.tui
         try:
             size = tui.app.renderer.output.get_size()
-            page_size = max(1, size.rows - 10)
-            delta = direction * page_size
             servers = tui.active_pane_servers
-            idx = tui.active_pane_index
-            new_idx = max(0, min(len(servers) - 1, idx + delta))
+            new_idx = scroll_list(servers, tui.active_pane_index, direction, size.rows)
             tui.set_active_pane_index(new_idx)
             event.app.invalidate()
         except Exception:
@@ -141,4 +142,4 @@ class FavrecentTab:
 
     def get_focus_control(self):
         tui = self.tui
-        return tui.recent_control if tui.favrecent_pane == "recent" else tui.favorites_control
+        return tui.recent_control if self.favrecent_pane == "recent" else tui.favorites_control

@@ -6,6 +6,8 @@ from rich.console import Console
 from rich import box
 from prompt_toolkit.formatted_text import ANSI
 
+from console_renderer import render_to_ansi, ping_color
+
 
 class ModManager:
     def __init__(self, config):
@@ -49,67 +51,58 @@ class ModManager:
         return os.path.basename(path)
 
     def get_mod_list_text(self, server, live_info_entry):
-        output, console = self._render_console(38)
+        def render(console):
+            if server:
+                map_name = (live_info_entry.get('map') if live_info_entry else None) or server.get('map', 'Unknown')
+                console.print(f"[bold cyan]{server.get('name', 'Unknown')[:35]}[/bold cyan]")
+                console.print(f"IP: {server.get('ip')}:{server.get('port')}")
+                console.print(f"Map: {map_name}")
+                console.print("─" * 38, style="dim white")
 
-        if server:
-            map_name = (live_info_entry.get('map') if live_info_entry else None) or server.get('map', 'Unknown')
-            console.print(f"[bold cyan]{server.get('name', 'Unknown')[:35]}[/bold cyan]")
-            console.print(f"IP: {server.get('ip')}:{server.get('port')}")
-            console.print(f"Map: {map_name}")
-            console.print("─" * 38, style="dim white")
+            if live_info_entry:
+                console.print("[bold yellow]LIVE INFO[/bold yellow]")
+                ping = live_info_entry.get('ping', '?')
+                ping_style = self._ping_style(ping)
+                console.print(f"Players: {live_info_entry.get('players')}/{live_info_entry.get('max_players')}")
+                console.print(f"Ping:    [{ping_style}]{ping} ms[/{ping_style}]")
+                console.print(f"Queue:   [orange1]{live_info_entry.get('queue')}[/orange1]")
+                console.print(f"Time:    {live_info_entry.get('time')}")
+            elif server:
+                console.print("[bold yellow]LIVE INFO[/bold yellow]")
+                players = server.get('players', '0')
+                max_players = server.get('max_players', '0')
+                ping_style = self._ping_style('?')
+                console.print(f"Players: {players}/{max_players}")
+                console.print(f"Ping:    [{ping_style}]? ms[/{ping_style}]")
+                queue = server.get('queue', '0')
+                console.print(f"Queue:   [orange1]{queue}[/orange1]")
+                time_val = server.get('time', '?')
+                console.print(f"Time:    {time_val}")
+            else:
+                console.print("[dim]No live data available[/dim]")
 
-        if live_info_entry:
-            console.print("[bold yellow]LIVE INFO[/bold yellow]")
-            ping = live_info_entry.get('ping', '?')
-            ping_style = self._ping_style(ping)
-            console.print(f"Players: {live_info_entry.get('players')}/{live_info_entry.get('max_players')}")
-            console.print(f"Ping:    [{ping_style}]{ping} ms[/{ping_style}]")
-            console.print(f"Queue:   [orange1]{live_info_entry.get('queue')}[/orange1]")
-            console.print(f"Time:    {live_info_entry.get('time')}")
-        elif server:
-            console.print("[bold yellow]LIVE INFO[/bold yellow]")
-            players = server.get('players', '0')
-            max_players = server.get('max_players', '0')
-            ping_style = self._ping_style('?')
-            console.print(f"Players: {players}/{max_players}")
-            console.print(f"Ping:    [{ping_style}]? ms[/{ping_style}]")
-            queue = server.get('queue', '0')
-            console.print(f"Queue:   [orange1]{queue}[/orange1]")
-            time_val = server.get('time', '?')
-            console.print(f"Time:    {time_val}")
-        else:
-            console.print("[dim]No live data available[/dim]")
+            console.print("\n[bold yellow]MODS[/bold yellow]")
+            mods = server.get('mods', []) if server else []
+            if not mods and live_info_entry:
+                mods = live_info_entry.get('mods', [])
 
-        console.print("\n[bold yellow]MODS[/bold yellow]")
-        mods = server.get('mods', []) if server else []
-        if not mods and live_info_entry:
-            mods = live_info_entry.get('mods', [])
+            if mods:
+                console.print(f"Total: {len(mods)}")
+                for m in mods[:20]:
+                    mname = m.get('name', 'Unknown')
+                    if len(mname) > 35:
+                        mname = mname[:32] + "..."
+                    console.print(f"• [dim]{mname}[/dim]")
+                if len(mods) > 20:
+                    console.print(f"  ... and {len(mods) - 20} more")
+            else:
+                console.print("[dim]Vanilla / No mods listed[/dim]")
 
-        if mods:
-            console.print(f"Total: {len(mods)}")
-            for m in mods[:20]:
-                mname = m.get('name', 'Unknown')
-                if len(mname) > 35:
-                    mname = mname[:32] + "..."
-                console.print(f"• [dim]{mname}[/dim]")
-            if len(mods) > 20:
-                console.print(f"  ... and {len(mods) - 20} more")
-        else:
-            console.print("[dim]Vanilla / No mods listed[/dim]")
-
-        result = ANSI(output.getvalue())
-        self._close_resources(output, console)
-        return result
+        return render_to_ansi(render, 38)
 
     @staticmethod
     def _ping_style(ping):
-        if not isinstance(ping, int):
-            return "white"
-        if ping <= 75:
-            return "green"
-        if ping <= 150:
-            return "yellow"
-        return "red"
+        return ping_color(ping)
 
     def get_installed_mods_text(self, width=80):
         if self.cached_installed_mods:

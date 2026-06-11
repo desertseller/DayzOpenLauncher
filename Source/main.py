@@ -1,6 +1,5 @@
 import sys
 import os
-import requests
 import subprocess
 import platform
 import logging
@@ -25,32 +24,18 @@ else:
     sys.path.insert(0, os.path.dirname(__file__))
 
 from constants import VERSION
-from version_utils import is_newer_version
+from update_checker import fetch_latest_version
+
 
 def check_for_updates():
-    repo = "PawelKawka/DayzOpenLauncher"
-    api_url = f"https://api.github.com/repos/{repo}/releases/latest"
-
     try:
         logging.info("Checking for updates...")
-        response = requests.get(api_url, timeout=5)
-        try:
-            response.raise_for_status()
-            data = response.json()
-            latest_tag = data.get("tag_name", "").lstrip('v')
-
-            if is_newer_version(latest_tag, VERSION):
-                logging.info(f"New version available: {latest_tag}")
-                return True, latest_tag
-        finally:
-            try:
-                response.close()
-            except Exception:
-                pass
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Network error while checking for updates: {e}")
+        latest_tag = fetch_latest_version()
+        if latest_tag:
+            logging.info(f"New version available: {latest_tag}")
+            return True, latest_tag
     except Exception as e:
-        logging.error(f"Unexpected error while checking for updates: {e}")
+        logging.error(f"Error while checking for updates: {e}")
 
     return False, None
 

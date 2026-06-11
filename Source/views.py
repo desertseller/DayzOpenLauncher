@@ -1,11 +1,10 @@
-import io
 from rich.table import Table
-from rich.console import Console
 from rich import box
-from prompt_toolkit.formatted_text import ANSI, HTML
+from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.layout import HSplit, VSplit, Window
 from prompt_toolkit.widgets import Frame, Label
 from constants import BUILD_INFO
+from console_renderer import render_table_to_ansi, ping_color
 
 
 class ViewRenderer:
@@ -129,23 +128,14 @@ class ViewRenderer:
         except (ValueError, TypeError):
             return str(ping_val)
 
-        color = "green" if p <= 75 else "yellow" if p <= 150 else "red"
+        color = ping_color(p)
         if is_selected:
             return f"[bold {color}]{ping_val}[/bold {color}]"
         return f"[{color}]{ping_val}[/{color}]"
 
     @staticmethod
     def _render_console_table(table, width):
-        output = io.StringIO()
-        console = Console(file=output, force_terminal=True, color_system="standard", width=width)
-        console.print(table)
-        result = ANSI(output.getvalue())
-        for obj in (output, console):
-            try:
-                obj.close()
-            except Exception:
-                pass
-        return result
+        return render_table_to_ansi(table, width)
 
     def get_server_list_text(self, filtered_servers, selected_index, live_info, loading, current_tab, output_size, search_text=""):
         if loading and current_tab == "GLOBAL":

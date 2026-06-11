@@ -56,9 +56,10 @@ class Config:
             return default
         return val
 
-    def set(self, key, value):
+    def set(self, key, value, save=True):
         self.data[key] = value
-        self.save()
+        if save:
+            self.save()
 
     def add_server(self, name, ip, port, query_port=None):
         self.data["servers"].append({

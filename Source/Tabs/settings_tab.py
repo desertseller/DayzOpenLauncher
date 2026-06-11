@@ -14,13 +14,13 @@ class SettingsTab:
             height=1, multiline=False,
             text=str(tui.data_manager.config.get("profile_name", DEFAULT_PROFILE_NAME) or "")
         )
-        tui.nick_input.buffer.on_text_changed += lambda _: tui.data_manager.config.set("profile_name", tui.nick_input.text)
+        tui.nick_input.buffer.on_text_changed += lambda _: tui.data_manager.config.set("profile_name", tui.nick_input.text, save=False)
 
         tui.dayz_path_input = TextArea(
             height=1, multiline=False,
             text=str(tui.data_manager.config.get("dayz_path", "") or "")
         )
-        tui.dayz_path_input.buffer.on_text_changed += lambda _: tui.data_manager.config.set("dayz_path", tui.dayz_path_input.text)
+        tui.dayz_path_input.buffer.on_text_changed += lambda _: tui.data_manager.config.set("dayz_path", tui.dayz_path_input.text, save=False)
 
     def init_layout(self):
         tui = self.tui

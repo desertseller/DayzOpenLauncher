@@ -41,6 +41,7 @@ from views import ViewRenderer
 from keybindings import KeyBinder
 from constants import VERSION, APP_NAME, DEFAULT_PROFILE_NAME
 from ui_layout import UILayout
+from focus_router import FocusRouter
 from Tabs import GlobalTab, FavrecentTab, SettingsTab, ModsTab
 
 if platform.system() == "Windows":
@@ -65,6 +66,7 @@ class DayZLauncherTUI:
         self.running = True
         self._init_data()
         self._init_state()
+        self.focus_router = FocusRouter(self)
         self._init_ui()
         self._init_background_loops()
 
@@ -104,10 +106,6 @@ class DayZLauncherTUI:
                 self.data_manager.config.set("dayz_path", "CANNOT FIND PATH")
 
     def _init_state(self):
-        self.selected_index = 0
-        self.recent_selected_index = 0
-        self.favorites_selected_index = 0
-        self.favrecent_pane = "recent"
         self.refresh_lock = threading.Lock()
         self.search_timer = None
         self.current_tab = "GLOBAL"
@@ -116,6 +114,56 @@ class DayZLauncherTUI:
         self.launch_message = ""
         self.latest_update_info = None
         self.run_update_on_exit = False
+
+    # ── Tab state delegation ─────────────────────────────────────
+
+    @property
+    def selected_index(self):
+        return self.tab_global.selected_index
+
+    @selected_index.setter
+    def selected_index(self, value):
+        self.tab_global.selected_index = value
+
+    @property
+    def recent_selected_index(self):
+        return self.tab_favrecent.recent_selected_index
+
+    @recent_selected_index.setter
+    def recent_selected_index(self, value):
+        self.tab_favrecent.recent_selected_index = value
+
+    @property
+    def favorites_selected_index(self):
+        return self.tab_favrecent.favorites_selected_index
+
+    @favorites_selected_index.setter
+    def favorites_selected_index(self, value):
+        self.tab_favrecent.favorites_selected_index = value
+
+    @property
+    def favrecent_pane(self):
+        return self.tab_favrecent.favrecent_pane
+
+    @favrecent_pane.setter
+    def favrecent_pane(self, value):
+        self.tab_favrecent.favrecent_pane = value
+
+    @property
+    def active_pane_servers(self):
+        return (self.data_manager.favrecent_recent if self.favrecent_pane == "recent"
+                else self.data_manager.favrecent_favorites)
+
+    @property
+    def active_pane_index(self):
+        return (self.recent_selected_index if self.favrecent_pane == "recent"
+                else self.favorites_selected_index)
+
+    def set_active_pane_index(self, value):
+        if self.favrecent_pane == "recent":
+            self.recent_selected_index = value
+        else:
+            self.favorites_selected_index = value
 
 
     def _init_ui(self):
@@ -249,6 +297,9 @@ class DayZLauncherTUI:
             setattr(self, f"{attr_name}_selected_index", max(0, list_len - 1))
 
     def switch_tab(self, tab_name):
+        if self.current_tab == "SETTINGS":
+            self.data_manager.config.save()
+
         self.current_tab = tab_name
         self.search_filter.text = ""
         self.selected_index = 0
@@ -264,29 +315,8 @@ class DayZLauncherTUI:
 
         self._focus_tab_control(tab_name)
 
-        if hasattr(self, 'app'):
-            self.app.invalidate()
-
     def _focus_tab_control(self, tab_name):
-        focus_map = {
-            "SETTINGS": self.tab_settings.get_focus_control(),
-            "MODS": self.tab_mods.get_focus_control(),
-        }
-        target = focus_map.get(tab_name)
-        if tab_name == "FAVRECENT":
-            target = self.tab_favrecent.get_focus_control()
-        if target is None:
-            target = self.tab_global.get_focus_control()
-
-        try:
-            self.app.layout.focus(target)
-            if hasattr(target, 'buffer') and hasattr(target.buffer, 'cursor_position'):
-                target.buffer.cursor_position = len(target.text)
-        except (ValueError, AttributeError):
-            try:
-                self.app.layout.focus(self.search_filter)
-            except Exception:
-                pass
+        self.focus_router.focus_tab_control(tab_name)
 
 
     def join_server_wrapper(self, server):
@@ -308,22 +338,6 @@ class DayZLauncherTUI:
 
         self.server_actions.join_server(server, on_start, on_end)
 
-    @property
-    def active_pane_servers(self):
-        return (self.data_manager.favrecent_recent if self.favrecent_pane == "recent"
-                else self.data_manager.favrecent_favorites)
-
-    @property
-    def active_pane_index(self):
-        return (self.recent_selected_index if self.favrecent_pane == "recent"
-                else self.favorites_selected_index)
-
-    def set_active_pane_index(self, value):
-        if self.favrecent_pane == "recent":
-            self.recent_selected_index = value
-        else:
-            self.favorites_selected_index = value
-
     # ── App lifecycle ────────────────────────────────────────────
 
     def run(self):
@@ -341,6 +355,10 @@ class DayZLauncherTUI:
 
     def _cleanup(self):
         self.running = False
+        try:
+            self.data_manager.config.save()
+        except Exception:
+            pass
         try:
             if hasattr(self, 'search_timer') and self.search_timer:
                 self.search_timer.cancel()

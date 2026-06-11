@@ -47,6 +47,10 @@ class ServerActions:
             })
         self.config.set("servers", favs)
 
+    def get_fav_keys(self):
+        favs = self.config.get("servers", [])
+        return {(str(f.get('ip')), str(f.get('port'))) for f in favs}
+
 
     def cancel_launch(self):
         self.cancel_requested = True

@@ -1,14 +1,17 @@
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.filters import has_focus
+from focus_router import FocusRouter
 
 
 class KeyBinder:
     def __init__(self, tui):
         self.tui = tui
+        self.focus_router = FocusRouter(tui)
 
     def get_global_bindings(self):
         kb = KeyBindings()
         tui = self.tui
+        router = self.focus_router
 
         @kb.add('/')
         def _focus_search(event):
@@ -35,7 +38,7 @@ class KeyBinder:
             if tui.show_launch_dialog:
                 tui._close_launch()
                 return
-            self._focus_default_control()
+            router.focus_default_control()
 
         @kb.add('f8')
         def _refresh(event):
@@ -57,16 +60,17 @@ class KeyBinder:
 
         @kb.add('down', filter=has_focus(tui.nick_input))
         def _focus_dayz_path(event):
-            self._safe_focus(tui.dayz_path_input)
+            router.safe_focus(tui.dayz_path_input)
 
         @kb.add('up', filter=has_focus(tui.dayz_path_input))
         def _focus_nick(event):
-            self._safe_focus(tui.nick_input)
+            router.safe_focus(tui.nick_input)
 
         return kb
 
     def _handle_tab(self, event):
         tui = self.tui
+        router = self.focus_router
         try:
             if tui.current_tab == "SETTINGS":
                 self._cycle_settings_focus(event)
@@ -88,11 +92,12 @@ class KeyBinder:
             pass
 
     def _cycle_settings_focus(self, event):
+        router = self.focus_router
         layout = event.app.layout
         if layout.has_focus(self.tui.nick_input):
-            self._safe_focus(self.tui.dayz_path_input)
+            router.safe_focus(self.tui.dayz_path_input)
         else:
-            self._safe_focus(self.tui.nick_input)
+            router.safe_focus(self.tui.nick_input)
 
     def _target_control(self):
         tui = self.tui
@@ -103,31 +108,6 @@ class KeyBinder:
             return (tui.recent_control if tui.favrecent_pane == "recent"
                     else tui.favorites_control)
         return tui.content_control
-
-    def _focus_default_control(self):
-        tui = self.tui
-        focus_map = {
-            "SETTINGS": tui.nick_input,
-            "MODS": tui.installed_mods_control,
-        }
-        target = focus_map.get(tui.current_tab)
-        if tui.current_tab == "FAVRECENT":
-            target = (tui.recent_control if tui.favrecent_pane == "recent"
-                      else tui.favorites_control)
-        if target is None:
-            target = tui.content_control
-        try:
-            tui.app.layout.focus(target)
-        except Exception:
-            pass
-
-    def _safe_focus(self, control):
-        try:
-            self.tui.app.layout.focus(control)
-            if hasattr(control, 'buffer') and hasattr(control.buffer, 'cursor_position'):
-                control.buffer.cursor_position = len(control.text)
-        except Exception:
-            pass
 
     def _toggle_current_favorite(self, event):
         tui = self.tui

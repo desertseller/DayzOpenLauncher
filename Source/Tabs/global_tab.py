@@ -4,11 +4,13 @@ from prompt_toolkit.widgets import Frame, TextArea
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.filters import Condition
 from constants import APP_NAME
+from focus_router import scroll_list
 
 
 class GlobalTab:
     def __init__(self, tui):
         self.tui = tui
+        self.selected_index = 0
         self.main_content = None
         self.search_frame = None
         self.title_frame = None
@@ -64,7 +66,7 @@ class GlobalTab:
         size = tui.app.renderer.output.get_size()
         return tui.view_renderer.get_server_list_text(
             tui.data_manager.filtered_servers,
-            tui.selected_index,
+            self.selected_index,
             tui.data_manager.live_info,
             tui.data_manager.loading,
             tui.current_tab,
@@ -75,8 +77,8 @@ class GlobalTab:
     def get_mod_list_text(self):
         tui = self.tui
         server = None
-        if tui.data_manager.filtered_servers and tui.selected_index < len(tui.data_manager.filtered_servers):
-            server = tui.data_manager.filtered_servers[tui.selected_index]
+        if tui.data_manager.filtered_servers and self.selected_index < len(tui.data_manager.filtered_servers):
+            server = tui.data_manager.filtered_servers[self.selected_index]
 
         live = None
         if server:
@@ -105,7 +107,7 @@ class GlobalTab:
                 return
             if tui.search_filter.text:
                 tui.search_filter.buffer.delete_before_cursor()
-                tui.selected_index = 0
+                self.selected_index = 0
                 tui.recent_selected_index = 0
                 tui.favorites_selected_index = 0
                 tui.update_filtered()
@@ -113,16 +115,16 @@ class GlobalTab:
 
         @kb.add('up')
         def _up(event):
-            if tui.selected_index > 0:
-                tui.selected_index -= 1
+            if self.selected_index > 0:
+                self.selected_index -= 1
             elif tui.current_tab == "GLOBAL":
                 tui.app.layout.focus(tui.search_filter)
             event.app.invalidate()
 
         @kb.add('down')
         def _down(event):
-            if tui.selected_index < len(tui.data_manager.filtered_servers) - 1:
-                tui.selected_index += 1
+            if self.selected_index < len(tui.data_manager.filtered_servers) - 1:
+                self.selected_index += 1
             event.app.invalidate()
 
         @kb.add('pageup')
@@ -136,14 +138,14 @@ class GlobalTab:
         @kb.add('enter', filter=Condition(lambda: not tui.show_launch_dialog))
         def _join(event):
             servers = tui.data_manager.filtered_servers
-            idx = tui.selected_index
+            idx = self.selected_index
             if servers and 0 <= idx < len(servers):
                 tui.join_server_wrapper(servers[idx])
 
         @kb.add('f7')
         def _favorite(event):
             servers = tui.data_manager.filtered_servers
-            idx = tui.selected_index
+            idx = self.selected_index
             if servers and 0 <= idx < len(servers):
                 tui.server_actions.toggle_favorite(servers[idx])
                 tui.update_filtered()
@@ -155,10 +157,12 @@ class GlobalTab:
         tui = self.tui
         try:
             size = tui.app.renderer.output.get_size()
-            page_size = max(1, size.rows - 10)
-            delta = direction * page_size
-            max_index = len(tui.data_manager.filtered_servers) - 1
-            tui.selected_index = max(0, min(max_index, tui.selected_index + delta))
+            self.selected_index = scroll_list(
+                tui.data_manager.filtered_servers,
+                self.selected_index,
+                direction,
+                size.rows
+            )
             event.app.invalidate()
         except Exception:
             pass
