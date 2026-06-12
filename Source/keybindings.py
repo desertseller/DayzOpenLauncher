@@ -69,9 +69,24 @@ class KeyBinder:
         def _focus_dayz_path(event):
             router.safe_focus(tui.dayz_path_input)
 
+        @kb.add('down', filter=has_focus(tui.dayz_path_input))
+        def _focus_launch_close(event):
+            router.safe_focus(tui.launch_close_input)
+
         @kb.add('up', filter=has_focus(tui.dayz_path_input))
         def _focus_nick(event):
             router.safe_focus(tui.nick_input)
+
+        @kb.add('up', filter=has_focus(tui.launch_close_input))
+        def _focus_dayz_path_up(event):
+            router.safe_focus(tui.dayz_path_input)
+
+        @kb.add('enter', filter=has_focus(tui.launch_close_input))
+        def _toggle_launch_close(event):
+            current = tui.data_manager.config.get("launch_and_close", False)
+            new_val = not current
+            tui.data_manager.config.set("launch_and_close", new_val)
+            tui.launch_close_input.text = "ON" if new_val else "OFF"
 
         return kb
 
@@ -103,6 +118,8 @@ class KeyBinder:
         layout = event.app.layout
         if layout.has_focus(self.tui.nick_input):
             router.safe_focus(self.tui.dayz_path_input)
+        elif layout.has_focus(self.tui.dayz_path_input):
+            router.safe_focus(self.tui.launch_close_input)
         else:
             router.safe_focus(self.tui.nick_input)
 

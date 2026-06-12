@@ -3,6 +3,7 @@ import sys
 import platform
 import threading
 import time
+import subprocess
 import traceback
 
 if getattr(sys, 'frozen', False):
@@ -322,6 +323,43 @@ class DayZLauncherTUI:
         self.focus_router.focus_tab_control(tab_name)
 
 
+    def _start_dayz_monitor(self, server):
+        def monitor():
+            for _ in range(60):
+                time.sleep(2)
+                if self._is_dayz_running():
+                    ip = str(server.get('ip', ''))
+                    port = str(server.get('port', ''))
+                    key = f"{ip}:{port}"
+                    timestamps = self.data_manager.config.get("last_played_timestamps", {})
+                    timestamps[key] = time.time()
+                    self.data_manager.config.set("last_played_timestamps", timestamps)
+                    if self.data_manager.config.get("launch_and_close", False):
+                        try:
+                            self.data_manager.config.save()
+                        except Exception:
+                            pass
+                        try:
+                            self.app.exit()
+                        except Exception:
+                            os._exit(0)
+                    break
+
+        threading.Thread(target=monitor, daemon=True).start()
+
+    @staticmethod
+    def _is_dayz_running():
+        if platform.system() != "Windows":
+            return False
+        try:
+            result = subprocess.run(
+                ['tasklist', '/fi', 'imagename eq DayZ_x64.exe'],
+                capture_output=True, text=True, timeout=5
+            )
+            return 'DayZ_x64.exe' in result.stdout
+        except Exception:
+            return False
+
     def join_server_wrapper(self, server):
         def on_start(msg):
             self.launch_message = msg
@@ -333,6 +371,7 @@ class DayZLauncherTUI:
                 self.launch_message = err
             else:
                 self.show_launch_dialog = False
+                self._start_dayz_monitor(server)
                 try:
                     self.app.layout.focus(self.content_control)
                 except Exception:

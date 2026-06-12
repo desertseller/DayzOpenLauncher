@@ -41,7 +41,7 @@ class ViewRenderer:
             footer += f" <ansiyellow>Update available: {update_info['tag']}</ansiyellow> "
         return HTML(footer)
 
-    def get_settings_view(self, nick_input, dayz_path_input):
+    def get_settings_view(self, nick_input, dayz_path_input, launch_close_input):
         return Frame(
             HSplit([
                 Window(height=1),
@@ -53,6 +53,12 @@ class ViewRenderer:
                         Window(height=1),
                         Label(text="INSTALLATION PATH", style="ansiyellow bold"),
                         dayz_path_input,
+                        Window(height=1),
+                        Label(text="LAUNCH & CLOSE", style="ansiyellow bold"),
+                        VSplit([
+                            launch_close_input,
+                            Window(),
+                        ]),
                         Window(height=2),
                     ])
                 ]),

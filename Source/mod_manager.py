@@ -1,6 +1,7 @@
 import os
 import re
 import io
+import time
 from rich.table import Table
 from rich.console import Console
 from rich import box
@@ -50,6 +51,26 @@ class ModManager:
             pass
         return os.path.basename(path)
 
+    def _format_last_played(self, server):
+        timestamps = self.config.get("last_played_timestamps", {})
+        key = f"{server.get('ip')}:{server.get('port')}"
+        ts = timestamps.get(key)
+        if not ts:
+            return None
+        diff = time.time() - ts
+        if diff < 0:
+            return None
+        if diff < 60:
+            return "just now"
+        if diff < 3600:
+            m = int(diff // 60)
+            return f"{m} min ago" if m == 1 else f"{m} mins ago"
+        if diff < 86400:
+            h = int(diff // 3600)
+            return f"{h} hr ago" if h == 1 else f"{h} hrs ago"
+        d = int(diff // 86400)
+        return f"{d} day ago" if d == 1 else f"{d} days ago"
+
     def get_mod_list_text(self, server, live_info_entry):
         def render(console):
             if server:
@@ -57,6 +78,9 @@ class ModManager:
                 console.print(f"[bold cyan]{server.get('name', 'Unknown')[:35]}[/bold cyan]")
                 console.print(f"IP: {server.get('ip')}:{server.get('port')}")
                 console.print(f"Map: {map_name}")
+                last_played = self._format_last_played(server)
+                if last_played:
+                    console.print(f"[dim]Last played: {last_played}[/dim]")
                 console.print("─" * 38, style="dim white")
 
             if live_info_entry:

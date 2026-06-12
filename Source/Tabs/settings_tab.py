@@ -22,11 +22,19 @@ class SettingsTab:
         )
         tui.dayz_path_input.buffer.on_text_changed += lambda _: tui.data_manager.config.set("dayz_path", tui.dayz_path_input.text, save=False)
 
+        launch_close_on = tui.data_manager.config.get("launch_and_close", False)
+        tui.launch_close_input = TextArea(
+            height=1, multiline=False,
+            read_only=True,
+            text="ON" if launch_close_on else "OFF"
+        )
+
     def init_layout(self):
         tui = self.tui
         self.settings_content = tui.view_renderer.get_settings_view(
             tui.nick_input,
-            tui.dayz_path_input
+            tui.dayz_path_input,
+            tui.launch_close_input
         )
 
     def get_body(self):

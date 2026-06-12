@@ -18,7 +18,9 @@ class Config:
             "servers": [],
             "recent_servers": [],
             "dayz_path": "",
-            "profile_name": DEFAULT_PROFILE_NAME
+            "profile_name": DEFAULT_PROFILE_NAME,
+            "last_played_timestamps": {},
+            "launch_and_close": False
         }
         self.load()
 
