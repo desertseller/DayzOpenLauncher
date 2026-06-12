@@ -1,11 +1,13 @@
-import io
+from html import escape as html_escape
 from rich.table import Table
-from rich.console import Console
 from rich import box
-from prompt_toolkit.formatted_text import ANSI, HTML
-from prompt_toolkit.layout import HSplit, VSplit, Window
+from prompt_toolkit.filters import has_focus
+from prompt_toolkit.formatted_text import HTML
+from prompt_toolkit.layout import HSplit, VSplit, Window, FormattedTextControl
 from prompt_toolkit.widgets import Frame, Label
+from prompt_toolkit.key_binding import KeyBindings
 from constants import BUILD_INFO
+from console_renderer import render_table_to_ansi, ping_color
 
 
 class ViewRenderer:
@@ -34,7 +36,7 @@ class ViewRenderer:
     def get_footer_text(self, update_info=None):
         tabs_count = len(self.app.tabs) if self.app else 4
         footer = (
-            f" <b>F1-F{tabs_count}</b>: Tabs | <b>←/→</b>: Switch between windows | "
+            f" <b>F1-F{tabs_count}</b>: Tabs | "
             f"<b>F7</b>: Fav | <b>F8</b>: Refresh | <b>Ctrl+C</b>: Quit | "
             f"<b>PageUp/PageDown</b>: Scroll Page | <b>Build:</b> {BUILD_INFO} "
         )
@@ -42,35 +44,57 @@ class ViewRenderer:
             footer += f" <ansiyellow>Update available: {update_info['tag']}</ansiyellow> "
         return HTML(footer)
 
-    def get_settings_view(self, nick_input, dayz_path_input):
+    def get_settings_view(self, nick_input, dayz_path_input, toggle_control, battleye_toggle_control):
         return Frame(
             HSplit([
                 Window(height=1),
                 VSplit([
                     Window(width=4),
                     HSplit([
-                        Label(text="SURVIVOR NAME", style="ansiyellow bold"),
-                        nick_input,
+                        self._focus_label("Survivor Name", nick_input),
                         Window(height=1),
-                        Label(text="INSTALLATION PATH", style="ansiyellow bold"),
-                        dayz_path_input,
-                        Window(height=2),
-                    ])
+                        Frame(nick_input),
+                        Window(height=1),
+                        self._focus_label("Installation Path", dayz_path_input),
+                        Window(height=1),
+                        Frame(dayz_path_input),
+                        Window(height=1),
+                        self._focus_label("Launch & Close", toggle_control),
+                        Window(height=1),
+                        VSplit([
+                            toggle_control,
+                            Window(),
+                        ]),
+                        Window(height=1),
+                        self._focus_label("Disable BattlEye", battleye_toggle_control),
+                        Window(height=1),
+                        VSplit([
+                            battleye_toggle_control,
+                            Window(),
+                        ]),
+                    ]),
+                    Window(width=4),
                 ]),
                 Window(),
             ], padding=0),
             title="Settings"
         )
 
+    @staticmethod
+    def _focus_label(text, control):
+        def get_text():
+            prefix = "&gt; " if has_focus(control)() else "  "
+            return HTML(f"<ansiyellow><b>{prefix}{html_escape(text)}</b></ansiyellow>")
+        return Label(text=get_text)
+
     def _render_server_table(self, filtered_servers, selected_index, live_info, width, rows, is_active_pane=True):
         table = Table(box=box.MINIMAL, expand=True, show_header=True, header_style="bold cyan")
-        table.add_column("SEL", width=3, justify="center")
         table.add_column("SERVER NAME", no_wrap=True)
         table.add_column("PLAYERS", width=10, justify="right")
         table.add_column("QUEUE", width=8, justify="right")
         table.add_column("MAP", width=12)
         table.add_column("TIME", width=8)
-        table.add_column("PING", width=6, justify="right")
+        table.add_column("PING", width=8, justify="right")
 
         height = max(rows - 10, 20)
         start = max(0, selected_index - (height // 2))
@@ -98,8 +122,7 @@ class ViewRenderer:
                 name_display = f"* {name_display}"
 
             table.add_row(
-                ">" if (is_sel and is_active_pane) else " ",
-                name_display[:(width - 56)],
+                name_display[:(width - 50)],
                 f"{live.get('players', '?') if live else server.get('players', '?')}/"
                 f"{live.get('max_players', '?') if live else server.get('max_players', '?')}",
                 q_display,
@@ -131,23 +154,14 @@ class ViewRenderer:
         except (ValueError, TypeError):
             return str(ping_val)
 
-        color = "green" if p <= 75 else "yellow" if p <= 150 else "red"
+        color = ping_color(p)
         if is_selected:
             return f"[bold {color}]{ping_val}[/bold {color}]"
         return f"[{color}]{ping_val}[/{color}]"
 
     @staticmethod
     def _render_console_table(table, width):
-        output = io.StringIO()
-        console = Console(file=output, force_terminal=True, color_system="standard", width=width)
-        console.print(table)
-        result = ANSI(output.getvalue())
-        for obj in (output, console):
-            try:
-                obj.close()
-            except Exception:
-                pass
-        return result
+        return render_table_to_ansi(table, width)
 
     def get_server_list_text(self, filtered_servers, selected_index, live_info, loading, current_tab, output_size, search_text=""):
         if loading and current_tab == "GLOBAL":
@@ -158,7 +172,7 @@ class ViewRenderer:
 
         if not filtered_servers and not loading:
             if current_tab == "GLOBAL" and search_text:
-                return HTML(f"<ansired>No servers found matching: '{search_text}'</ansired>")
+                return HTML(f"<ansired>No servers found matching: '{html_escape(search_text)}'</ansired>")
             return HTML("<ansiyellow>Type server name...</ansiyellow>") if current_tab == "GLOBAL" else "No servers found."
 
         cols, rows = output_size

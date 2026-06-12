@@ -1,8 +1,11 @@
-VERSION = "1.2.7"
-BUILD_INFO = "040620261"
+VERSION = "1.3.0"
+BUILD_INFO = "120620261"
 APP_NAME = "DayzOpenLauncher"
 DZSA_API_URL = "https://dayzsalauncher.com/api/v2/launcher/servers/dayz"
 CONFIG_FILE_NAME = "config.json"
 DEFAULT_PROFILE_NAME = "Survivor"
 DEFAULT_TIMEOUT = 5
 QUERY_PORT_OFFSET = 24714
+PING_GREEN = 75
+PING_YELLOW = 120
+GITHUB_REPO = "desertseller/DayzOpenLauncher"

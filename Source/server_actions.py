@@ -47,6 +47,10 @@ class ServerActions:
             })
         self.config.set("servers", favs)
 
+    def get_fav_keys(self):
+        favs = self.config.get("servers", [])
+        return {(str(f.get('ip')), str(f.get('port'))) for f in favs}
+
 
     def cancel_launch(self):
         self.cancel_requested = True
@@ -133,7 +137,7 @@ class ServerActions:
                 self._open_workshop_page(currently_opening)
 
             on_start(
-                f"MOD DOWNLOAD IN PROGRESS... [ESC to Cancel]\n"
+                f"MOD DOWNLOAD IN PROGRESS...\n"
                 f"Remaining: {len(still_missing)} mods\n"
                 f"Currently waiting for ID: {currently_opening}"
             )
@@ -221,7 +225,8 @@ class ServerActions:
                     server.get('ip'),
                     server.get('port'),
                     profile,
-                    final_paths
+                    final_paths,
+                    disable_battleye=self.config.get("disable_battleye", False)
                 )
                 time.sleep(2)
                 if not success:

@@ -10,12 +10,26 @@ except ImportError:
     EItemState = None
 
 class SteamHelper:
-    def __init__(self):
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(SteamHelper, cls).__new__(cls)
+            cls._instance._init_once()
+        return cls._instance
+
+    def _init_once(self):
         self.steam = None
         self.workshop = None
         self.initialized = False
+        self._init_done = False
 
     def init(self):
+        if getattr(self, '_init_done', False):
+            return self.initialized
+            
+        self._init_done = True
+        
         if not STEAMWORKS:
             return False
             
@@ -26,13 +40,8 @@ class SteamHelper:
             if os.path.basename(root_dir) == "Source":
                 root_dir = os.path.dirname(root_dir)
                 
-        appid_path = os.path.join(root_dir, "steam_appid.txt")
-        if not os.path.exists(appid_path):
-            try:
-                with open(appid_path, "w") as f:
-                    f.write("221100")
-            except:
-                pass
+        os.environ['SteamAppId'] = '221100'
+        os.environ['SteamGameId'] = '221100'
         
         try:
             self.steam = STEAMWORKS()

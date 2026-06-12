@@ -135,12 +135,15 @@ class DataManager:
         return self.filtered_servers
 
     def _update_standard(self, current_tab, search_text):
-        tab_source_map = {
-            "GLOBAL": self.all_servers,
-            "FAVORITES": self.config.get("servers", []),
-            "RECENT": self.config.get("recent_servers", []),
-        }
-        source = tab_source_map.get(current_tab, [])
+        if current_tab == "GLOBAL" and not search_text and self.last_good_servers:
+            source = self.last_good_servers
+        else:
+            tab_source_map = {
+                "GLOBAL": self.all_servers,
+                "FAVORITES": self.config.get("servers", []),
+                "RECENT": self.config.get("recent_servers", []),
+            }
+            source = tab_source_map.get(current_tab, [])
 
         if current_tab in ("FAVORITES", "RECENT"):
             source = self._enrich_servers(source)
