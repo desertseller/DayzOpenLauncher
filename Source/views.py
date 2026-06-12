@@ -36,7 +36,7 @@ class ViewRenderer:
     def get_footer_text(self, update_info=None):
         tabs_count = len(self.app.tabs) if self.app else 4
         footer = (
-            f" <b>F1-F{tabs_count}</b>: Tabs | <b>←/→</b>: Switch between windows | "
+            f" <b>F1-F{tabs_count}</b>: Tabs | "
             f"<b>F7</b>: Fav | <b>F8</b>: Refresh | <b>Ctrl+C</b>: Quit | "
             f"<b>PageUp/PageDown</b>: Scroll Page | <b>Build:</b> {BUILD_INFO} "
         )
