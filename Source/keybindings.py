@@ -1,5 +1,5 @@
 from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.filters import has_focus
+from prompt_toolkit.filters import has_focus, Condition
 from focus_router import FocusRouter
 
 
@@ -51,12 +51,11 @@ class KeyBinder:
                 return
             router.focus_default_control()
 
-        @kb.add('enter')
+        @kb.add('enter', filter=Condition(lambda: tui.show_launch_dialog))
         def _enter_close_error(event):
-            if tui.show_launch_dialog:
-                msg = tui.launch_message or ""
-                if "Error" in msg or "ERROR" in msg or "Failed" in msg:
-                    tui._do_close_launch()
+            msg = tui.launch_message or ""
+            if "Error" in msg or "ERROR" in msg or "Failed" in msg:
+                tui._do_close_launch()
 
         @kb.add('f8')
         def _refresh(event):

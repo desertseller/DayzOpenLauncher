@@ -292,7 +292,7 @@ class DayZLauncherTUI:
         profile_name = self.data_manager.config.get("profile_name", DEFAULT_PROFILE_NAME)
 
         self.show_direct_connect = False
-        self.launch_message = f"Launching DayZ...\nIP: {ip}:{port}"
+        self.launch_message = f"Starting DayZ...\nIP: {ip}:{port}"
         self.show_launch_dialog = True
         self.app.invalidate()
 
