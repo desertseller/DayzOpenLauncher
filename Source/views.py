@@ -44,7 +44,7 @@ class ViewRenderer:
             footer += f" <ansiyellow>Update available: {update_info['tag']}</ansiyellow> "
         return HTML(footer)
 
-    def get_settings_view(self, nick_input, dayz_path_input, toggle_control):
+    def get_settings_view(self, nick_input, dayz_path_input, toggle_control, battleye_toggle_control):
         return Frame(
             HSplit([
                 Window(height=1),
@@ -63,6 +63,13 @@ class ViewRenderer:
                         Window(height=1),
                         VSplit([
                             toggle_control,
+                            Window(),
+                        ]),
+                        Window(height=1),
+                        self._focus_label("Disable BattlEye", battleye_toggle_control),
+                        Window(height=1),
+                        VSplit([
+                            battleye_toggle_control,
                             Window(),
                         ]),
                     ]),

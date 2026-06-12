@@ -20,7 +20,8 @@ class Config:
             "dayz_path": "",
             "profile_name": DEFAULT_PROFILE_NAME,
             "last_played_timestamps": {},
-            "launch_and_close": False
+            "launch_and_close": False,
+            "disable_battleye": False
         }
         self.load()
 

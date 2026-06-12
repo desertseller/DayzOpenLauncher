@@ -91,6 +91,14 @@ class KeyBinder:
         def _focus_dayz_path_up(event):
             router.safe_focus(tui.dayz_path_input)
 
+        @kb.add('down', filter=has_focus(tui.launch_close_window))
+        def _focus_battleye(event):
+            router.safe_focus(tui.battleye_toggle_window)
+
+        @kb.add('up', filter=has_focus(tui.battleye_toggle_window))
+        def _focus_launch_close_up(event):
+            router.safe_focus(tui.launch_close_window)
+
         return kb
 
     def _handle_tab(self, event):
@@ -123,8 +131,10 @@ class KeyBinder:
             router.safe_focus(self.tui.dayz_path_input)
         elif layout.has_focus(self.tui.dayz_path_input):
             router.safe_focus(self.tui.launch_close_window)
-        else:
-            router.safe_focus(self.tui.nick_input)
+        elif layout.has_focus(self.tui.launch_close_window):
+            router.safe_focus(self.tui.battleye_toggle_window)
+        elif layout.has_focus(self.tui.battleye_toggle_window):
+            router.safe_focus(self.tui.dayz_path_input)
 
     def _target_control(self):
         tui = self.tui

@@ -297,7 +297,8 @@ class DayZLauncherTUI:
         self.app.invalidate()
 
         from windows.launcher import launch_dayz
-        if launch_dayz(dayz_path, ip, port, profile_name):
+        disable_battleye = self.data_manager.config.get("disable_battleye", False)
+        if launch_dayz(dayz_path, ip, port, profile_name, disable_battleye=disable_battleye):
             if self.data_manager.config.get("launch_and_close", False):
                 try:
                     self.data_manager.config.save()

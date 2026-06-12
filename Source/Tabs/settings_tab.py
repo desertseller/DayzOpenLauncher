@@ -25,6 +25,21 @@ class SettingsTab:
                 )
         return render_to_ansi(render, 28)
 
+    def _get_battleye_toggle_text(self):
+        def render(console):
+            on = self.tui.data_manager.config.get("disable_battleye", False)
+            if on:
+                console.print(
+                    f"[bold white on green]  ON  [/bold white on green]"
+                    f" [dim] Enter to toggle[/dim]"
+                )
+            else:
+                console.print(
+                    f"[bold white on red]  OFF [/bold white on red]"
+                    f" [dim] Enter to toggle[/dim]"
+                )
+        return render_to_ansi(render, 28)
+
     def init_widgets(self):
         tui = self.tui
 
@@ -60,12 +75,33 @@ class SettingsTab:
             height=1,
         )
 
+        tui.battleye_toggle_control = FormattedTextControl(
+            text=lambda: self._get_battleye_toggle_text(),
+            focusable=True,
+        )
+
+        be_toggle_kb = KeyBindings()
+        @be_toggle_kb.add('enter')
+        def _be_toggle(event):
+            current = tui.data_manager.config.get("disable_battleye", False)
+            tui.data_manager.config.set("disable_battleye", not current)
+            event.app.invalidate()
+        tui.battleye_toggle_control.key_bindings = be_toggle_kb
+
+        tui.battleye_toggle_window = Window(
+            content=tui.battleye_toggle_control,
+            width=28,
+            always_hide_cursor=True,
+            height=1,
+        )
+
     def init_layout(self):
         tui = self.tui
         self.settings_content = tui.view_renderer.get_settings_view(
             tui.nick_input,
             tui.dayz_path_input,
-            tui.launch_close_window
+            tui.launch_close_window,
+            tui.battleye_toggle_window
         )
 
     def get_body(self):

@@ -225,7 +225,8 @@ class ServerActions:
                     server.get('ip'),
                     server.get('port'),
                     profile,
-                    final_paths
+                    final_paths,
+                    disable_battleye=self.config.get("disable_battleye", False)
                 )
                 time.sleep(2)
                 if not success:
