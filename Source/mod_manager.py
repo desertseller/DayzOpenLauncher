@@ -18,6 +18,69 @@ class ModManager:
 
     def clear_cache(self):
         self.cached_installed_mods = None
+        self._mods_cache_key = None
+        if hasattr(self, '_cached_gb_size'):
+            del self._cached_gb_size
+
+    def _get_workshop_path(self):
+        dayz_path = self.config.get("dayz_path")
+        if not dayz_path:
+            return None
+        if os.path.isfile(dayz_path):
+            dayz_path = os.path.dirname(dayz_path)
+        return os.path.abspath(os.path.join(dayz_path, "..", "..", "workshop", "content", "221100"))
+
+    @staticmethod
+    def _extract_mod_workshop_id(mod_entry):
+        raw = mod_entry.get('steamWorkshopId') or mod_entry.get('id')
+        try:
+            return str(int(raw))
+        except (ValueError, TypeError):
+            return None
+
+    def _is_mod_installed(self, mod_id):
+        workshop = self._get_workshop_path()
+        if not workshop:
+            return False
+        mod_dir = os.path.join(workshop, mod_id)
+        try:
+            return os.path.exists(mod_dir) and os.listdir(mod_dir)
+        except (OSError, PermissionError):
+            return False
+
+    def _get_mod_dir_size(self, mod_id):
+        workshop = self._get_workshop_path()
+        if not workshop:
+            return 0
+        mod_dir = os.path.join(workshop, mod_id)
+        total = 0
+        try:
+            for dirpath, _, filenames in os.walk(mod_dir):
+                for f in filenames:
+                    try:
+                        total += os.path.getsize(os.path.join(dirpath, f))
+                    except OSError:
+                        pass
+        except Exception:
+            pass
+        return total
+
+    def _get_total_mods_size_gb(self):
+        if hasattr(self, '_cached_gb_size'):
+            return self._cached_gb_size
+        workshop = self._get_workshop_path()
+        if not workshop or not os.path.exists(workshop):
+            return 0.0
+        total = 0
+        try:
+            for entry in os.listdir(workshop):
+                mod_path = os.path.join(workshop, entry)
+                if os.path.isdir(mod_path):
+                    total += self._get_mod_dir_size(entry)
+        except Exception:
+            pass
+        self._cached_gb_size = total / (1024 ** 3)
+        return self._cached_gb_size
 
     @staticmethod
     def _render_console(width, color_system="standard"):
@@ -71,7 +134,7 @@ class ModManager:
         d = int(diff // 86400)
         return f"{d} day ago" if d == 1 else f"{d} days ago"
 
-    def get_mod_list_text(self, server, live_info_entry):
+    def get_mod_list_text(self, server, live_info_entry, available_height=None):
         def render(console):
             if server:
                 map_name = (live_info_entry.get('map') if live_info_entry else None) or server.get('map', 'Unknown')
@@ -111,14 +174,42 @@ class ModManager:
                 mods = live_info_entry.get('mods', [])
 
             if mods:
-                console.print(f"Total: {len(mods)}")
-                for m in mods[:20]:
+                installed_count = 0
+                missing_count = 0
+                mod_status = []
+                for m in mods:
+                    mid = self._extract_mod_workshop_id(m)
+                    installed = bool(mid and self._is_mod_installed(mid))
+                    if installed:
+                        installed_count += 1
+                    else:
+                        missing_count += 1
+                    mod_status.append((m, installed))
+
+                console.print(f"Total: {len(mods)} ([green]{installed_count} installed[/green] / [red]{missing_count} missing[/red])")
+
+                max_show = len(mods)
+                if available_height:
+                    max_from_height = max(5, available_height - 20)
+                    max_show = min(len(mods), max_from_height)
+
+                for m, installed in mod_status[:max_show]:
                     mname = m.get('name', 'Unknown')
                     if len(mname) > 35:
                         mname = mname[:32] + "..."
-                    console.print(f"• [dim]{mname}[/dim]")
-                if len(mods) > 20:
-                    console.print(f"  ... and {len(mods) - 20} more")
+                    if installed:
+                        console.print(f"• [green]{mname}[/green]")
+                    else:
+                        console.print(f"• [red]{mname}[/red]")
+
+                if len(mods) > max_show:
+                    remaining = len(mods) - max_show
+                    rem_installed = sum(1 for _, inst in mod_status[max_show:] if inst)
+                    rem_missing = remaining - rem_installed
+                    console.print(
+                        f"  ... and [bold]{remaining} more[/bold] "
+                        f"([green]{rem_installed}[/green]/[red]{rem_missing}[/red])"
+                    )
             else:
                 console.print("[dim]Vanilla / No mods listed[/dim]")
 
@@ -129,7 +220,9 @@ class ModManager:
         return ping_color(ping)
 
     def get_installed_mods_text(self, width=80):
-        if self.cached_installed_mods:
+        cache_key = (self.mods_page, width)
+        if (hasattr(self, '_mods_cache_key') and self._mods_cache_key == cache_key
+                and self.cached_installed_mods):
             return self.cached_installed_mods
 
         dayz_path = self.config.get("dayz_path")
@@ -147,6 +240,7 @@ class ModManager:
 
             result = self._render_mod_table(mods, width)
             self.cached_installed_mods = result
+            self._mods_cache_key = cache_key
             return result
         except Exception as e:
             return f"Error reading mods: {e}"
@@ -190,7 +284,9 @@ class ModManager:
         start = self.mods_page * per_page
         page_mods = unique_names[start:min(start + per_page, total)]
 
-        header = f"[bold yellow]PAGE {self.mods_page + 1}/{total_pages}[/bold yellow] (Total: {total})"
+        total_gb = self._get_total_mods_size_gb()
+        size_text = f" | [dim]{total_gb:.2f} GB[/dim]" if total_gb > 0 else ""
+        header = f"[bold yellow]PAGE {self.mods_page + 1}/{total_pages}[/bold yellow] (Total: {total}){size_text}"
         table = Table(
             box=None, padding=(0, 1), expand=True,
             show_header=True, header_style="bold white",

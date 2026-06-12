@@ -84,7 +84,14 @@ class GlobalTab:
         if server:
             live = tui.data_manager.live_info.get((server.get('ip'), server.get('port')))
 
-        return tui.mod_manager.get_mod_list_text(server, live)
+        available_height = None
+        if hasattr(tui, 'app'):
+            try:
+                available_height = tui.app.renderer.output.get_size().rows
+            except Exception:
+                pass
+
+        return tui.mod_manager.get_mod_list_text(server, live, available_height)
 
     def get_list_keybindings(self):
         tui = self.tui
