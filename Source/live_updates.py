@@ -25,27 +25,29 @@ class LiveUpdater:
                     return False
                 
                 if "error" not in live_data:
-                    if self.live_info_lock:
-                        with self.live_info_lock:
-                            self.live_info[(ip, server.get('port'))] = {
-                                'players': live_data.get('players'),
-                                'max_players': live_data.get('max_players'),
-                                'ping': live_data.get('ping'),
-                                'queue': live_data.get('queue'),
-                                'time': live_data.get('time'),
-                                'map': live_data.get('map'),
-                                'mods': live_data.get('mods', [])
-                            }
-                    else:
-                        self.live_info[(ip, server.get('port'))] = {
-                            'players': live_data.get('players'),
-                            'max_players': live_data.get('max_players'),
-                            'ping': live_data.get('ping'),
-                            'queue': live_data.get('queue'),
-                            'time': live_data.get('time'),
-                            'map': live_data.get('map'),
-                            'mods': live_data.get('mods', [])
-                        }
+                            if self.live_info_lock:
+                                with self.live_info_lock:
+                                    self.live_info[(ip, server.get('port'))] = {
+                                        'players': live_data.get('players'),
+                                        'max_players': live_data.get('max_players'),
+                                        'ping': live_data.get('ping'),
+                                        'queue': live_data.get('queue'),
+                                        'time': live_data.get('time'),
+                                        'map': live_data.get('map'),
+                                        'mods': live_data.get('mods', []),
+                                        'ts': time.time()
+                                    }
+                            else:
+                                self.live_info[(ip, server.get('port'))] = {
+                                    'players': live_data.get('players'),
+                                    'max_players': live_data.get('max_players'),
+                                    'ping': live_data.get('ping'),
+                                    'queue': live_data.get('queue'),
+                                    'time': live_data.get('time'),
+                                    'map': live_data.get('map'),
+                                    'mods': live_data.get('mods', []),
+                                    'ts': time.time()
+                                }
                     return True
         except:
             pass
@@ -74,6 +76,18 @@ class LiveUpdater:
                     now = time.time()
                     if len(self.last_queries) > 1000:
                          self.last_queries = {k:v for k,v in self.last_queries.items() if now - v < 60}
+
+                    if self.live_info_lock:
+                        with self.live_info_lock:
+                            if len(self.live_info) > 1000:
+                                to_del = [k for k, v in self.live_info.items() if now - v.get('ts', now) > 600]
+                                for k in to_del:
+                                    del self.live_info[k]
+                    else:
+                        if len(self.live_info) > 1000:
+                            to_del = [k for k, v in self.live_info.items() if now - v.get('ts', now) > 600]
+                            for k in to_del:
+                                del self.live_info[k]
 
                     for s in unique_subset:
                         key = (s.get('ip'), s.get('port'))

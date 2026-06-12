@@ -26,13 +26,8 @@ class SteamHelper:
             if os.path.basename(root_dir) == "Source":
                 root_dir = os.path.dirname(root_dir)
                 
-        appid_path = os.path.join(root_dir, "steam_appid.txt")
-        if not os.path.exists(appid_path):
-            try:
-                with open(appid_path, "w") as f:
-                    f.write("221100")
-            except:
-                pass
+        os.environ['SteamAppId'] = '221100'
+        os.environ['SteamGameId'] = '221100'
         
         try:
             self.steam = STEAMWORKS()

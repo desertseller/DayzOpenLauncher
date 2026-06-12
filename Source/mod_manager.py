@@ -15,6 +15,8 @@ class ModManager:
         self.config = config
         self.cached_installed_mods = None
         self.mods_page = 0
+        self._workshop_cache = set()
+        self._workshop_cache_ts = 0.0
 
     def clear_cache(self):
         self.cached_installed_mods = None
@@ -42,11 +44,16 @@ class ModManager:
         workshop = self._get_workshop_path()
         if not workshop:
             return False
-        mod_dir = os.path.join(workshop, mod_id)
-        try:
-            return os.path.exists(mod_dir) and os.listdir(mod_dir)
-        except (OSError, PermissionError):
-            return False
+
+        now = time.time()
+        if now - getattr(self, '_workshop_cache_ts', 0) > 10.0:
+            try:
+                self._workshop_cache = set(os.listdir(workshop))
+            except Exception:
+                self._workshop_cache = set()
+            self._workshop_cache_ts = now
+
+        return mod_id in self._workshop_cache
 
     def _get_mod_dir_size(self, mod_id):
         workshop = self._get_workshop_path()
@@ -82,24 +89,6 @@ class ModManager:
         self._cached_gb_size = total / (1024 ** 3)
         return self._cached_gb_size
 
-    @staticmethod
-    def _render_console(width, color_system="standard"):
-        output = io.StringIO()
-        console = Console(
-            file=output,
-            force_terminal=True,
-            color_system=color_system,
-            width=width
-        )
-        return output, console
-
-    @staticmethod
-    def _close_resources(output, console):
-        for obj in (output, console):
-            try:
-                obj.close()
-            except Exception:
-                pass
 
     def get_mod_name(self, path):
         try:
@@ -229,8 +218,6 @@ class ModManager:
         if not dayz_path or not os.path.exists(dayz_path):
             return "DayZ path not set or invalid. Check Settings (F3)."
 
-        output, console = self._render_console(width)
-
         try:
             mods = self._collect_installed_mods(dayz_path)
 
@@ -244,8 +231,6 @@ class ModManager:
             return result
         except Exception as e:
             return f"Error reading mods: {e}"
-        finally:
-            self._close_resources(output, console)
 
     def _collect_installed_mods(self, dayz_path):
         mods = []
@@ -305,8 +290,5 @@ class ModManager:
                 row.append("")
             table.add_row(*row)
 
-        output, console = self._render_console(max(width, 80))
-        console.print(table)
-        result = ANSI(output.getvalue())
-        self._close_resources(output, console)
-        return result
+        from console_renderer import render_table_to_ansi
+        return render_table_to_ansi(table, max(width, 80))

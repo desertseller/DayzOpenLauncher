@@ -4,6 +4,8 @@ from prompt_toolkit.formatted_text import ANSI
 
 from constants import PING_GREEN, PING_YELLOW
 
+_global_console = Console(force_terminal=True, color_system="standard", width=80)
+
 
 def ping_color(ping_val):
     if not isinstance(ping_val, int):
@@ -17,19 +19,15 @@ def ping_color(ping_val):
 
 def render_to_ansi(render_func, width, color_system="standard"):
     output = io.StringIO()
-    console = Console(
-        file=output,
-        force_terminal=True,
-        color_system=color_system,
-        width=width
-    )
+    
+    _global_console.file = output
+    _global_console.width = width
+    
     try:
-        render_func(console)
+        render_func(_global_console)
     finally:
-        try:
-            console.close()
-        except Exception:
-            pass
+        pass
+        
     result = ANSI(output.getvalue())
     try:
         output.close()

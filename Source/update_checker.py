@@ -29,9 +29,14 @@ def fetch_latest_version():
 class UpdateChecker:
     def __init__(self, tui_app):
         self.tui = tui_app
+        self.is_checking = False
 
     def start_check(self):
+        if self.is_checking:
+            return
+            
         def _check():
+            self.is_checking = True
             try:
                 time.sleep(3)
                 latest_tag = fetch_latest_version()
@@ -41,5 +46,7 @@ class UpdateChecker:
                         self.tui.app.invalidate()
             except Exception:
                 pass
+            finally:
+                self.is_checking = False
 
         threading.Thread(target=_check, daemon=True).start()

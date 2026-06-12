@@ -9,3 +9,6 @@ __pycache__/
 TESTING/
 preview/
 *.exe
+.env
+venv/
+.venv/
