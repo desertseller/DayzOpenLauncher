@@ -113,6 +113,7 @@ class DayZLauncherTUI:
         self.tabs = ["GLOBAL", "FAVRECENT", "SETTINGS", "MODS"]
         self.show_launch_dialog = False
         self.launch_message = ""
+        self.show_direct_connect = False
         self.latest_update_info = None
         self.run_update_on_exit = False
 
@@ -231,6 +232,88 @@ class DayZLauncherTUI:
 
         threading.Thread(target=_mod_checker, daemon=True).start()
 
+
+    def _open_direct_connect(self):
+        self.show_direct_connect = True
+        self.ui_layout.direct_connect_dialog.clear()
+        self.app.invalidate()
+        try:
+            control = self.ui_layout.direct_connect_dialog.textarea.control
+            if control:
+                self.app.layout.focus(control)
+        except Exception:
+            pass
+
+    def _close_direct_connect(self):
+        self.show_direct_connect = False
+        self.app.invalidate()
+        try:
+            self.app.layout.focus(self.content_control)
+        except Exception:
+            pass
+
+    def _handle_direct_connect(self, text):
+        text = text.strip()
+        if not text:
+            return
+
+        if ':' in text:
+            ip, port_str = text.rsplit(':', 1)
+            ip = ip.strip()
+            port_str = port_str.strip()
+        else:
+            parts = text.split()
+            if len(parts) >= 2:
+                ip, port_str = parts[0].strip(), parts[1].strip()
+            else:
+                self.launch_message = "Error: Invalid format\nIP:PORT expected"
+                self.show_launch_dialog = True
+                self.show_direct_connect = False
+                self.app.invalidate()
+                return
+
+        try:
+            port = int(port_str)
+        except (ValueError, TypeError):
+            self.launch_message = "Error: Invalid port\nMust be a number"
+            self.show_launch_dialog = True
+            self.show_direct_connect = False
+            self.app.invalidate()
+            return
+
+        dayz_path = self.data_manager.config.get("dayz_path")
+        if not dayz_path or dayz_path == "CANNOT FIND PATH":
+            self.launch_message = "Error: DayZ path not set\nConfigure in Settings (F3)"
+            self.show_launch_dialog = True
+            self.show_direct_connect = False
+            self.app.invalidate()
+            return
+
+        profile_name = self.data_manager.config.get("profile_name", DEFAULT_PROFILE_NAME)
+
+        self.show_direct_connect = False
+        self.launch_message = f"Launching DayZ...\nIP: {ip}:{port}"
+        self.show_launch_dialog = True
+        self.app.invalidate()
+
+        from windows.launcher import launch_dayz
+        if launch_dayz(dayz_path, ip, port, profile_name):
+            if self.data_manager.config.get("launch_and_close", False):
+                try:
+                    self.data_manager.config.save()
+                except Exception:
+                    pass
+                self.app.exit()
+            else:
+                def _hide():
+                    time.sleep(2)
+                    self.show_launch_dialog = False
+                    self.app.invalidate()
+
+                threading.Thread(target=_hide, daemon=True).start()
+        else:
+            self.launch_message = "Error: Failed to launch DayZ"
+            self.app.invalidate()
 
     def _close_launch(self):
         self.server_actions.cancel_launch()

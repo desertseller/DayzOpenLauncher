@@ -2,6 +2,7 @@ from prompt_toolkit.layout import Layout, HSplit, Window, FormattedTextControl, 
 from prompt_toolkit.layout.dimension import Dimension
 from constants import APP_NAME, VERSION
 from launch_dialog import LaunchDialog
+from direct_connect_dialog import DirectConnectDialog
 
 
 class UILayout:
@@ -10,6 +11,7 @@ class UILayout:
         self.view_renderer = view_renderer
         self.tabs = tabs
         self.launch_dialog = LaunchDialog(tui)
+        self.direct_connect_dialog = DirectConnectDialog(tui)
 
     def init_widgets(self):
         for tab in self.tabs.values():
@@ -41,7 +43,8 @@ class UILayout:
                 Window(content=FormattedTextControl(text=lambda: self.view_renderer.get_footer_text(tui.latest_update_info)), height=1, always_hide_cursor=True),
             ]),
             floats=[
-                self.launch_dialog.get_container()
+                self.launch_dialog.get_container(),
+                self.direct_connect_dialog.get_container()
             ]
         )
 

@@ -29,12 +29,23 @@ class KeyBinder:
                 pass
             event.app.exit()
 
+        @kb.add('c-d')
+        def _direct_connect(event):
+            if tui.show_direct_connect:
+                tui._close_direct_connect()
+            elif not tui.show_launch_dialog:
+                tui._open_direct_connect()
+
         @kb.add('tab')
         def _tab_focus(event):
             self._handle_tab(event)
 
         @kb.add('c-q')
+        @kb.add('escape')
         def _close_dialog(event):
+            if tui.show_direct_connect:
+                tui._close_direct_connect()
+                return
             if tui.show_launch_dialog:
                 tui._close_launch()
                 return
