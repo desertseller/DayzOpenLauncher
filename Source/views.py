@@ -1,8 +1,11 @@
+from html import escape as html_escape
 from rich.table import Table
 from rich import box
+from prompt_toolkit.filters import has_focus
 from prompt_toolkit.formatted_text import HTML
-from prompt_toolkit.layout import HSplit, VSplit, Window
+from prompt_toolkit.layout import HSplit, VSplit, Window, FormattedTextControl
 from prompt_toolkit.widgets import Frame, Label
+from prompt_toolkit.key_binding import KeyBindings
 from constants import BUILD_INFO
 from console_renderer import render_table_to_ansi, ping_color
 
@@ -41,31 +44,41 @@ class ViewRenderer:
             footer += f" <ansiyellow>Update available: {update_info['tag']}</ansiyellow> "
         return HTML(footer)
 
-    def get_settings_view(self, nick_input, dayz_path_input, launch_close_input):
+    def get_settings_view(self, nick_input, dayz_path_input, toggle_control):
         return Frame(
             HSplit([
                 Window(height=1),
                 VSplit([
                     Window(width=4),
                     HSplit([
-                        Label(text="SURVIVOR NAME", style="ansiyellow bold"),
-                        nick_input,
+                        self._focus_label("Survivor Name", nick_input),
                         Window(height=1),
-                        Label(text="INSTALLATION PATH", style="ansiyellow bold"),
-                        dayz_path_input,
+                        Frame(nick_input),
                         Window(height=1),
-                        Label(text="LAUNCH & CLOSE", style="ansiyellow bold"),
+                        self._focus_label("Installation Path", dayz_path_input),
+                        Window(height=1),
+                        Frame(dayz_path_input),
+                        Window(height=1),
+                        self._focus_label("Launch & Close", toggle_control),
+                        Window(height=1),
                         VSplit([
-                            launch_close_input,
+                            toggle_control,
                             Window(),
                         ]),
-                        Window(height=2),
-                    ])
+                    ]),
+                    Window(width=4),
                 ]),
                 Window(),
             ], padding=0),
             title="Settings"
         )
+
+    @staticmethod
+    def _focus_label(text, control):
+        def get_text():
+            prefix = "&gt; " if has_focus(control)() else "  "
+            return HTML(f"<ansiyellow><b>{prefix}{html_escape(text)}</b></ansiyellow>")
+        return Label(text=get_text)
 
     def _render_server_table(self, filtered_servers, selected_index, live_info, width, rows, is_active_pane=True):
         table = Table(box=box.MINIMAL, expand=True, show_header=True, header_style="bold cyan")
@@ -152,7 +165,7 @@ class ViewRenderer:
 
         if not filtered_servers and not loading:
             if current_tab == "GLOBAL" and search_text:
-                return HTML(f"<ansired>No servers found matching: '{search_text}'</ansired>")
+                return HTML(f"<ansired>No servers found matching: '{html_escape(search_text)}'</ansired>")
             return HTML("<ansiyellow>Type server name...</ansiyellow>") if current_tab == "GLOBAL" else "No servers found."
 
         cols, rows = output_size
