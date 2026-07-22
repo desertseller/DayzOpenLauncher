@@ -1,5 +1,6 @@
 prompt_toolkit
 rich
-a2s-python
+a2s
+python-a2s
 requests
 steamworks
