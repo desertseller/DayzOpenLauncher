@@ -220,6 +220,23 @@ class ServerActions:
                 if self.cancel_requested:
                     return
 
+                # 4 sec delay
+                total_steps = 40
+                step_duration = 0.1
+                for step in range(total_steps + 1):
+                    if self.cancel_requested:
+                        return
+                    remaining = max(0.0, 4.0 - (step * step_duration))
+                    on_launch_start(
+                        f"Starting DayZ...\n"
+                        f"IP: {server.get('ip')}:{server.get('port')}\n\n"
+                        f"               Launching in {remaining:.1f}s"
+                    )
+                    time.sleep(step_duration)
+
+                if self.cancel_requested:
+                    return
+
                 success = launch_dayz(
                     dayz_path,
                     server.get('ip'),
