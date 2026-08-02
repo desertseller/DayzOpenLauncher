@@ -347,6 +347,11 @@ class DayZLauncherTUI:
             pass
 
     def refresh_data(self):
+        now = time.time()
+        if now - getattr(self, 'last_refresh_ts', 0.0) < 5.0:
+            return
+        self.last_refresh_ts = now
+
         def _worker():
             if not self.refresh_lock.acquire(blocking=False):
                 return
