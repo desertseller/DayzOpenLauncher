@@ -53,7 +53,7 @@ def get_dayz_path(steam_path):
 def is_dayz_running():
     try:
         result = subprocess.run(
-            ["pgrep", "-f", "DayZ"],
+            ["pgrep", "-f", "DayZ_x64"],
             capture_output=True, text=True, timeout=5
         )
         return bool(result.stdout.strip())
@@ -68,6 +68,7 @@ def acquire_single_instance():
         fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
         return lock_file
     except OSError:
+        print("DayzOpenLauncher is already running.")
         sys.exit(0)
 
 

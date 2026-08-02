@@ -59,7 +59,6 @@ if platform.system() == "Windows":
         def launch_dayz(*args):
             return False
 else:
-    sys.stdout.write("\x1b]2;DayzOpenLauncher\x07")
     try:
         from linux.utils import setup_env, get_steam_path, get_dayz_path, is_dayz_running
         from linux.launcher import launch_dayz
