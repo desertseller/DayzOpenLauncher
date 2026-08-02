@@ -1,5 +1,7 @@
 # DayzOpenLauncher
 
+### archived / no longer maintained
+
 A simple Python TUI launcher for Windows Terminal that allows you to browse DayZ servers, manage favorites, settings, and mods.
 
 ## Features

@@ -82,7 +82,7 @@ class LaunchDialog:
         if "Waiting" in line or "Remaining" in line or "Currently" in line:
             return "[~]", "yellow"
         if "Launching" in line or "verified" in line:
-            return "[+]", "bold green"
+            return "   ", "bold green"
         if "Starting" in line:
             return "[>]", "bold cyan"
         if "Opening" in line or "Workshop" in line:

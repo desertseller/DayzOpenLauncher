@@ -37,7 +37,7 @@ class ViewRenderer:
         tabs_count = len(self.app.tabs) if self.app else 4
         footer = (
             f" <b>F1-F{tabs_count}</b>: Tabs | "
-            f"<b>F7</b>: Fav | <b>F8</b>: Refresh | <b>Ctrl+C</b>: Quit | "
+            f"<b>F7</b>: Fav | <b>F8</b>: Refresh | <b>Ctrl+D</b>: Direct Connect | <b>Ctrl+C</b>: Quit | "
             f"<b>PageUp/PageDown</b>: Scroll Page | <b>Build:</b> {BUILD_INFO} "
         )
         if update_info:
