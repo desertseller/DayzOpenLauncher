@@ -3,7 +3,6 @@ import sys
 import platform
 import threading
 import time
-import subprocess
 import traceback
 
 if getattr(sys, 'frozen', False):
@@ -47,18 +46,33 @@ from Tabs import GlobalTab, FavrecentTab, SettingsTab, ModsTab
 
 if platform.system() == "Windows":
     try:
-        from windows.utils import setup_env, get_steam_path, get_dayz_path
+        from windows.utils import setup_env, get_steam_path, get_dayz_path, is_dayz_running
+        from windows.launcher import launch_dayz
         setup_env()
     except Exception:
         def get_steam_path():
             return None
         def get_dayz_path(p):
             return None
+        def is_dayz_running():
+            return False
+        def launch_dayz(*args):
+            return False
 else:
-    def get_steam_path():
-        return None
-    def get_dayz_path(p):
-        return None
+    sys.stdout.write("\x1b]2;DayzOpenLauncher\x07")
+    try:
+        from linux.utils import setup_env, get_steam_path, get_dayz_path, is_dayz_running
+        from linux.launcher import launch_dayz
+        setup_env()
+    except ImportError:
+        def get_steam_path():
+            return None
+        def get_dayz_path(p):
+            return None
+        def is_dayz_running():
+            return False
+        def launch_dayz(*args):
+            return False
 
 
 class DayZLauncherTUI:
@@ -95,8 +109,12 @@ class DayZLauncherTUI:
 
         path_invalid = False
         if current_path and current_path != "CANNOT FIND PATH":
-            if platform.system() == "Windows" and current_path.startswith("/"):
-                path_invalid = True
+            if platform.system() == "Windows":
+                if current_path.startswith("/"):
+                    path_invalid = True
+            else:
+                if "\\" in current_path or ":" in current_path:
+                    path_invalid = True
 
         if not current_path or path_invalid or current_path == "CANNOT FIND PATH":
             steam = get_steam_path()
@@ -296,7 +314,7 @@ class DayZLauncherTUI:
         self.show_launch_dialog = True
         self.app.invalidate()
 
-        from windows.launcher import launch_dayz
+        from server_actions import launch_dayz
         disable_battleye = self.data_manager.config.get("disable_battleye", False)
         if launch_dayz(dayz_path, ip, port, profile_name, disable_battleye=disable_battleye):
             if self.data_manager.config.get("launch_and_close", False):
@@ -433,16 +451,7 @@ class DayZLauncherTUI:
 
     @staticmethod
     def _is_dayz_running():
-        if platform.system() != "Windows":
-            return False
-        try:
-            result = subprocess.run(
-                ['tasklist', '/fi', 'imagename eq DayZ_x64.exe'],
-                capture_output=True, text=True, timeout=5
-            )
-            return 'DayZ_x64.exe' in result.stdout
-        except Exception:
-            return False
+        return is_dayz_running()
 
     def join_server_wrapper(self, server):
         def on_start(msg):

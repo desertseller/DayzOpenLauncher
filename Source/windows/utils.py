@@ -1,7 +1,12 @@
 import winreg
 import os
 import re
+import sys
 import ctypes
+import logging
+import subprocess
+
+MUTEX_NAME = "Global\\DayzOpenLauncher"
 
 def setup_env():
     try:
@@ -54,3 +59,27 @@ def get_dayz_path(steam_path):
                      if "installdir" in data:
                         return os.path.join(lib_path, "steamapps", "common", data["installdir"])
     return None
+
+def is_dayz_running():
+    try:
+        result = subprocess.run(
+            ['tasklist', '/fi', 'imagename eq DayZ_x64.exe'],
+            capture_output=True, text=True, timeout=5
+        )
+        return 'DayZ_x64.exe' in result.stdout
+    except Exception:
+        return False
+
+def acquire_single_instance():
+    mutex = ctypes.windll.kernel32.CreateMutexW(None, False, MUTEX_NAME)
+    if ctypes.GetLastError() == 183:
+        logging.warning("DayzOpenLauncher is already running.")
+        ctypes.windll.kernel32.CloseHandle(mutex)
+        sys.exit(0)
+    return mutex
+
+def release_single_instance(mutex):
+    try:
+        ctypes.windll.kernel32.CloseHandle(mutex)
+    except Exception:
+        pass

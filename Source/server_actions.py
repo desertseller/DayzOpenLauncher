@@ -13,8 +13,11 @@ if platform.system() == "Windows":
         def launch_dayz(*args):
             pass
 else:
-    def launch_dayz(*args):
-        pass
+    try:
+        from linux.launcher import launch_dayz
+    except ImportError:
+        def launch_dayz(*args):
+            pass
 
 
 class ServerActions:
@@ -151,6 +154,8 @@ class ServerActions:
         try:
             if platform.system() == "Windows":
                 os.startfile(steam_url)
+            else:
+                webbrowser.open(steam_url)
             time.sleep(0.5)
         except Exception:
             try:

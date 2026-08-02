@@ -1,9 +1,7 @@
 import sys
 import os
-import subprocess
 import platform
 import logging
-import ctypes
 from pathlib import Path
 
 logging.basicConfig(
@@ -39,20 +37,16 @@ def check_for_updates():
 
     return False, None
 
-def ensure_single_instance():
-    MUTEX_NAME = "Global\\DayzOpenLauncher"
-    mutex = ctypes.windll.kernel32.CreateMutexW(None, False, MUTEX_NAME)
-    if ctypes.GetLastError() == 183:
-        logging.warning("DayzOpenLauncher is already running.")
-        ctypes.windll.kernel32.CloseHandle(mutex)
-        sys.exit(0)
-    return mutex
-
 if __name__ == "__main__":
-    mutex_handle = ensure_single_instance()
+    if platform.system() == "Windows":
+        from windows.utils import acquire_single_instance, release_single_instance
+    else:
+        from linux.utils import acquire_single_instance, release_single_instance
+
+    instance_handle = acquire_single_instance()
     try:
         from start import DayZLauncherTUI
         tui = DayZLauncherTUI()
         tui.run()
     finally:
-        ctypes.windll.kernel32.CloseHandle(mutex_handle)
+        release_single_instance(instance_handle)
