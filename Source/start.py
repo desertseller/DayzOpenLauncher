@@ -314,7 +314,9 @@ class DayZLauncherTUI:
         self.app.invalidate()
 
         from server_actions import launch_dayz
-        disable_battleye = self.data_manager.config.get("disable_battleye", False)
+        disable_battleye = False
+        if platform.system() == "Windows":
+            disable_battleye = self.data_manager.config.get("disable_battleye", False)
         if launch_dayz(dayz_path, ip, port, profile_name, disable_battleye=disable_battleye):
             if self.data_manager.config.get("launch_and_close", False):
                 try:

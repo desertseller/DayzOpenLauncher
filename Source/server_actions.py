@@ -242,13 +242,17 @@ class ServerActions:
                 if self.cancel_requested:
                     return
 
+                disable_battleye = False
+                if platform.system() == "Windows":
+                    disable_battleye = self.config.get("disable_battleye", False)
+
                 success = launch_dayz(
                     dayz_path,
                     server.get('ip'),
                     server.get('port'),
                     profile,
                     final_paths,
-                    disable_battleye=self.config.get("disable_battleye", False)
+                    disable_battleye=disable_battleye
                 )
                 time.sleep(2)
                 if not success:

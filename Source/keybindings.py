@@ -1,3 +1,4 @@
+import platform
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.filters import has_focus, Condition
 from focus_router import FocusRouter
@@ -93,7 +94,10 @@ class KeyBinder:
 
         @kb.add('down', filter=has_focus(tui.launch_close_window))
         def _focus_battleye(event):
-            router.safe_focus(tui.battleye_toggle_window)
+            if platform.system() == "Windows":
+                router.safe_focus(tui.battleye_toggle_window)
+            else:
+                router.safe_focus(tui.dayz_path_input)
 
         @kb.add('up', filter=has_focus(tui.battleye_toggle_window))
         def _focus_launch_close_up(event):
@@ -132,7 +136,10 @@ class KeyBinder:
         elif layout.has_focus(self.tui.dayz_path_input):
             router.safe_focus(self.tui.launch_close_window)
         elif layout.has_focus(self.tui.launch_close_window):
-            router.safe_focus(self.tui.battleye_toggle_window)
+            if platform.system() == "Windows":
+                router.safe_focus(self.tui.battleye_toggle_window)
+            else:
+                router.safe_focus(self.tui.dayz_path_input)
         elif layout.has_focus(self.tui.battleye_toggle_window):
             router.safe_focus(self.tui.dayz_path_input)
 

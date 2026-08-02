@@ -20,9 +20,10 @@ class Config:
             "dayz_path": "",
             "profile_name": DEFAULT_PROFILE_NAME,
             "last_played_timestamps": {},
-            "launch_and_close": False,
-            "disable_battleye": False
+            "launch_and_close": False
         }
+        if platform.system() == "Windows":
+            self.data["disable_battleye"] = False
         self.load()
 
     def _get_config_dir(self):
@@ -39,6 +40,8 @@ class Config:
                 try:
                     with open(self.config_file, "r") as f:
                         loaded = json.load(f)
+                        if platform.system() != "Windows":
+                            loaded.pop("disable_battleye", None)
                         for key, value in self.data.items():
                             if key in loaded:
                                 self.data[key] = loaded[key]
@@ -60,6 +63,8 @@ class Config:
         return val
 
     def set(self, key, value, save=True):
+        if platform.system() != "Windows" and key == "disable_battleye":
+            return
         self.data[key] = value
         if save:
             self.save()

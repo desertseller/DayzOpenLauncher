@@ -1,4 +1,5 @@
 from html import escape as html_escape
+import platform
 from rich.table import Table
 from rich import box
 from prompt_toolkit.filters import has_focus
@@ -45,34 +46,40 @@ class ViewRenderer:
         return HTML(footer)
 
     def get_settings_view(self, nick_input, dayz_path_input, toggle_control, battleye_toggle_control):
+        rows = [
+            self._focus_label("Survivor Name", nick_input),
+            Window(height=1),
+            Frame(nick_input),
+            Window(height=1),
+            self._focus_label("Installation Path", dayz_path_input),
+            Window(height=1),
+            Frame(dayz_path_input),
+            Window(height=1),
+            self._focus_label("Launch & Close", toggle_control),
+            Window(height=1),
+            VSplit([
+                toggle_control,
+                Window(),
+            ]),
+        ]
+
+        if platform.system() == "Windows":
+            rows += [
+                Window(height=1),
+                self._focus_label("Disable BattlEye", battleye_toggle_control),
+                Window(height=1),
+                VSplit([
+                    battleye_toggle_control,
+                    Window(),
+                ]),
+            ]
+
         return Frame(
             HSplit([
                 Window(height=1),
                 VSplit([
                     Window(width=4),
-                    HSplit([
-                        self._focus_label("Survivor Name", nick_input),
-                        Window(height=1),
-                        Frame(nick_input),
-                        Window(height=1),
-                        self._focus_label("Installation Path", dayz_path_input),
-                        Window(height=1),
-                        Frame(dayz_path_input),
-                        Window(height=1),
-                        self._focus_label("Launch & Close", toggle_control),
-                        Window(height=1),
-                        VSplit([
-                            toggle_control,
-                            Window(),
-                        ]),
-                        Window(height=1),
-                        self._focus_label("Disable BattlEye", battleye_toggle_control),
-                        Window(height=1),
-                        VSplit([
-                            battleye_toggle_control,
-                            Window(),
-                        ]),
-                    ]),
+                    HSplit(rows),
                     Window(width=4),
                 ]),
                 Window(),
